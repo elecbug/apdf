@@ -8,80 +8,358 @@
 </head>
 <body>
   <main>
-    <header>
-      <h1>APDF</h1>
-      <p>Internal PDF utility: merge, split, extract, rotate, delete, overlay.</p>
-    </header>
-
-    <section class="card">
-      <h2>Find Result</h2>
-      <form action="/lookup" method="post" class="row">
-        <input name="code" placeholder="8-letter code" maxlength="12" required>
+    <header class="hero">
+      <div>
+        <h1>APDF</h1>
+        <p>Stored browser-session PDF sources on the left, assembled output on the right.</p>
+      </div>
+      <form action="/lookup" method="post" class="lookup">
+        <input name="code" placeholder="Result code" maxlength="12" required>
         <button>Open</button>
       </form>
+    </header>
+
+    <section class="toolbar card">
+      <div>
+        <h2>1. Load PDFs</h2>
+        <p>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</p>
+      </div>
+      <div class="upload-box">
+        <input id="pdfFiles" type="file" accept="application/pdf" multiple>
+        <div class="toolbar-actions">
+          <button type="button" id="uploadButton" class="primary">Upload to Sources</button>
+          <button type="button" id="clearSources" class="secondary">Clear Sources</button>
+        </div>
+        <p id="statusLine" class="status-line">Ready.</p>
+      </div>
     </section>
 
-    <section class="grid">
-      <form class="card" action="/merge" method="post" enctype="multipart/form-data">
-        <h2>Merge PDFs</h2>
-        <input type="file" name="files" accept="application/pdf" multiple required>
-        <button>Merge</button>
-      </form>
+    <section class="composer">
+      <div class="card pane">
+        <div class="pane-head">
+          <div>
+            <h2>2. Source PDFs</h2>
+            <p>Set a page range, then press Add. Last page is filled from the real PDF page count.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>PDF name</th>
+                <th>Pages</th>
+                <th>First</th>
+                <th>Last</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sourceRows">
+              <tr class="empty"><td colspan="5">No PDFs loaded.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      <form class="card" action="/extract" method="post" enctype="multipart/form-data">
-        <h2>Extract Pages</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <input name="pages" placeholder="1-5,8,10" required>
-        <button>Extract</button>
-      </form>
-
-      <form class="card" action="/split" method="post" enctype="multipart/form-data">
-        <h2>Split PDF</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <textarea name="ranges" placeholder="1-10&#10;11-20&#10;21-30"></textarea>
-        <button>Split</button>
-      </form>
-
-      <form class="card" action="/delete" method="post" enctype="multipart/form-data">
-        <h2>Delete Pages</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <input name="pages" placeholder="2,5,10-20" required>
-        <button>Delete</button>
-      </form>
-
-      <form class="card" action="/rotate" method="post" enctype="multipart/form-data">
-        <h2>Rotate Pages</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <input name="pages" placeholder="1-3,5" required>
-        <select name="angle">
-          <option value="90">90°</option>
-          <option value="180">180°</option>
-          <option value="270">270°</option>
-        </select>
-        <button>Rotate</button>
-      </form>
-
-      <form class="card" action="/overlay/text" method="post" enctype="multipart/form-data">
-        <h2>Text Overlay</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <input name="page" type="number" min="1" value="1" required>
-        <textarea name="text" placeholder="Text" required></textarea>
-        <div class="row"><input name="x" type="number" step="0.1" placeholder="X" required><input name="y" type="number" step="0.1" placeholder="Y from top" required></div>
-        <div class="row"><input name="font_size" type="number" value="12"><input name="opacity" type="number" step="0.1" min="0" max="1" value="1"></div>
-        <button>Apply Text</button>
-      </form>
-
-      <form class="card" action="/overlay/image" method="post" enctype="multipart/form-data">
-        <h2>Image Overlay</h2>
-        <input type="file" name="file" accept="application/pdf" required>
-        <input type="file" name="image" accept="image/*" required>
-        <input name="page" type="number" min="1" value="1" required>
-        <div class="row"><input name="x" type="number" step="0.1" placeholder="X" required><input name="y" type="number" step="0.1" placeholder="Y from top" required></div>
-        <div class="row"><input name="width" type="number" step="0.1" placeholder="Width" required><input name="height" type="number" step="0.1" placeholder="Height, 0=auto" value="0"></div>
-        <input name="opacity" type="number" step="0.1" min="0" max="1" value="1">
-        <button>Apply Image</button>
-      </form>
+      <div class="card pane">
+        <div class="pane-head">
+          <div>
+            <h2>3. Assembly</h2>
+            <p>Segments are exported in this order.</p>
+          </div>
+          <button type="button" class="secondary" id="clearAssembly">Clear</button>
+        </div>
+        <ol id="assemblyList" class="assembly-list"></ol>
+        <button type="button" id="buildButton" class="primary full">Build PDF</button>
+      </div>
     </section>
+
+    <details class="card help">
+      <summary>Notes</summary>
+      <ul>
+        <li>Page numbers are 1-based.</li>
+        <li>The source cache is bound to this browser through localStorage client_id.</li>
+        <li>Browsers cannot repopulate file inputs after Back/reload, so APDF restores the server-side source cache instead.</li>
+        <li>The backend validates all source_id and page ranges during export.</li>
+      </ul>
+    </details>
   </main>
+
+<script>
+const fileInput = document.getElementById('pdfFiles');
+const uploadButton = document.getElementById('uploadButton');
+const clearSourcesButton = document.getElementById('clearSources');
+const sourceRows = document.getElementById('sourceRows');
+const assemblyList = document.getElementById('assemblyList');
+const clearAssembly = document.getElementById('clearAssembly');
+const buildButton = document.getElementById('buildButton');
+const statusLine = document.getElementById('statusLine');
+
+let sources = [];
+let assembly = [];
+
+function setStatus(message) {
+  statusLine.textContent = message;
+}
+
+function getOrCreateClientId() {
+  let clientId = localStorage.getItem('apdf_client_id');
+  if (!clientId) {
+    clientId = crypto.randomUUID();
+    localStorage.setItem('apdf_client_id', clientId);
+  }
+  return clientId;
+}
+
+const clientId = getOrCreateClientId();
+
+function normalizePositiveInt(value, fallback) {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+function clampInput(input) {
+  const min = Number.parseInt(input.min, 10);
+  const max = Number.parseInt(input.max, 10);
+  let value = Number.parseInt(input.value, 10);
+
+  if (Number.isNaN(value)) return;
+  if (value < min) input.value = min;
+  if (value > max) input.value = max;
+}
+
+async function apiJson(url, options = {}) {
+  const response = await fetch(url, options);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function loadSources() {
+  const data = await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`);
+  sources = data.sources || [];
+  renderSources();
+}
+
+function renderSources() {
+  sourceRows.innerHTML = '';
+
+  if (sources.length === 0) {
+    sourceRows.innerHTML = '<tr class="empty"><td colspan="5">No PDFs loaded.</td></tr>';
+    return;
+  }
+
+  sources.forEach((source) => {
+    const tr = document.createElement('tr');
+    tr.dataset.sourceId = source.source_id;
+    tr.innerHTML = `
+      <td class="filename" title="${source.name}">${source.name}</td>
+      <td>${source.pages}</td>
+      <td>
+        <input class="page-input"
+               id="start-${source.source_id}"
+               type="number"
+               min="1"
+               max="${source.pages}"
+               value="1">
+      </td>
+      <td>
+        <input class="page-input"
+               id="end-${source.source_id}"
+               type="number"
+               min="1"
+               max="${source.pages}"
+               value="${source.pages}">
+      </td>
+      <td class="source-actions">
+        <button type="button" class="add-btn" data-source-id="${source.source_id}">Add →</button>
+        <button type="button" class="remove-source" data-source-id="${source.source_id}">Remove</button>
+      </td>
+    `;
+    sourceRows.appendChild(tr);
+  });
+}
+
+function renderAssembly() {
+  assemblyList.innerHTML = '';
+
+  assembly.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span><strong>${index + 1}.</strong> ${item.name} <code>${item.start}-${item.end}</code></span>
+      <span class="item-actions">
+        <button type="button" data-action="up" data-index="${index}">↑</button>
+        <button type="button" data-action="down" data-index="${index}">↓</button>
+        <button type="button" data-action="remove" data-index="${index}">Remove</button>
+      </span>
+    `;
+    assemblyList.appendChild(li);
+  });
+}
+
+uploadButton.addEventListener('click', async () => {
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Choose at least one PDF.');
+    return;
+  }
+
+  const formData = new FormData();
+  for (const file of fileInput.files) {
+    formData.append('files', file);
+  }
+
+  uploadButton.disabled = true;
+  setStatus('Uploading PDFs...');
+
+  try {
+    const data = await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
+      method: 'POST',
+      body: formData
+    });
+    fileInput.value = '';
+    await loadSources();
+    setStatus(`Uploaded ${data.sources.length} PDF(s).`);
+  } catch (error) {
+    alert(error.message);
+    setStatus('Upload failed.');
+  } finally {
+    uploadButton.disabled = false;
+  }
+});
+
+sourceRows.addEventListener('input', (event) => {
+  const input = event.target.closest('input.page-input');
+  if (!input) return;
+  clampInput(input);
+});
+
+sourceRows.addEventListener('click', async (event) => {
+  const addButton = event.target.closest('button.add-btn');
+  const removeButton = event.target.closest('button.remove-source');
+
+  if (addButton) {
+    const sourceId = addButton.dataset.sourceId;
+    const source = sources.find((item) => item.source_id === sourceId);
+    if (!source) return;
+
+    const startInput = document.getElementById(`start-${sourceId}`);
+    const endInput = document.getElementById(`end-${sourceId}`);
+    const start = normalizePositiveInt(startInput.value, 1);
+    const end = normalizePositiveInt(endInput.value, source.pages);
+
+    if (start > source.pages || end > source.pages) {
+      alert(`Page range exceeds PDF page count. Max: ${source.pages}`);
+      return;
+    }
+    if (end < start) {
+      alert('Last page must be greater than or equal to First page.');
+      return;
+    }
+
+    assembly.push({
+      source_id: source.source_id,
+      name: source.name,
+      start,
+      end
+    });
+    renderAssembly();
+    return;
+  }
+
+  if (removeButton) {
+    const sourceId = removeButton.dataset.sourceId;
+    if (!confirm('Remove this source PDF from the browser-session cache?')) return;
+
+    try {
+      await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources/${encodeURIComponent(sourceId)}`, {
+        method: 'DELETE'
+      });
+      assembly = assembly.filter((item) => item.source_id !== sourceId);
+      await loadSources();
+      renderAssembly();
+      setStatus('Source removed.');
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+});
+
+assemblyList.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+
+  const index = Number.parseInt(button.dataset.index, 10);
+  const action = button.dataset.action;
+
+  if (action === 'remove') assembly.splice(index, 1);
+  if (action === 'up' && index > 0) [assembly[index - 1], assembly[index]] = [assembly[index], assembly[index - 1]];
+  if (action === 'down' && index < assembly.length - 1) [assembly[index + 1], assembly[index]] = [assembly[index], assembly[index + 1]];
+
+  renderAssembly();
+});
+
+clearAssembly.addEventListener('click', () => {
+  assembly = [];
+  renderAssembly();
+});
+
+clearSourcesButton.addEventListener('click', async () => {
+  if (!confirm('Clear all source PDFs for this browser session?')) return;
+
+  try {
+    await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
+      method: 'DELETE'
+    });
+    sources = [];
+    assembly = [];
+    renderSources();
+    renderAssembly();
+    setStatus('Sources cleared.');
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+buildButton.addEventListener('click', async () => {
+  if (assembly.length === 0) {
+    alert('Add at least one range to Assembly.');
+    return;
+  }
+
+  buildButton.disabled = true;
+  setStatus('Building PDF...');
+
+  try {
+    const payload = {
+      client_id: clientId,
+      plan: assembly.map(({source_id, start, end}) => ({source_id, start, end}))
+    };
+
+    const data = await apiJson('/compose', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    window.location.href = data.url;
+  } catch (error) {
+    alert(error.message);
+    setStatus('Build failed.');
+  } finally {
+    buildButton.disabled = false;
+  }
+});
+
+(async function init() {
+  try {
+    await loadSources();
+    renderAssembly();
+    setStatus(`Session: ${clientId.slice(0, 8)}...`);
+  } catch (error) {
+    setStatus('Failed to restore sources.');
+  }
+})();
+</script>
 </body>
 </html>

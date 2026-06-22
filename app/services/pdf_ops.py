@@ -187,3 +187,90 @@ def overlay_image(input_path: Path, image_path: Path, output_path: Path, page_no
         writer.add_page(page)
     with output_path.open("wb") as f:
         writer.write(f)
+
+
+def assemble_ranges(input_paths: list[Path], plan: list[dict], output_path: Path) -> None:
+    """Assemble a new PDF from source files and 1-based inclusive ranges.
+
+    Each plan item:
+    {
+        "file_index": 0,
+        "start": 1,
+        "end": 3 | None
+    }
+    """
+    if not plan:
+        raise ValueError("Assembly plan is empty")
+
+    readers = [PdfReader(str(path)) for path in input_paths]
+    writer = PdfWriter()
+
+    for position, item in enumerate(plan, start=1):
+        try:
+            file_index = int(item["file_index"])
+            start = int(item.get("start") or 1)
+            raw_end = item.get("end")
+        except Exception as exc:
+            raise ValueError(f"Invalid plan item at #{position}") from exc
+
+        if file_index < 0 or file_index >= len(readers):
+            raise ValueError(f"Invalid file index at #{position}: {file_index}")
+        reader = readers[file_index]
+        total = len(reader.pages)
+        end = total if raw_end in (None, "", 0) else int(raw_end)
+        if start < 1 or end < 1 or start > end or end > total:
+            raise ValueError(
+                f"Invalid page range at #{position}: {start}-{end} for source with {total} pages"
+            )
+        for idx in range(start - 1, end):
+            writer.add_page(reader.pages[idx])
+
+    with output_path.open("wb") as f:
+        writer.write(f)
+
+
+def assemble_sources(source_paths: dict[str, Path], plan: list[dict], output_path: Path) -> None:
+    """Assemble a new PDF from stored source_id-based ranges.
+
+    Each plan item:
+    {
+        "source_id": "A8KQ29XZP1",
+        "start": 1,
+        "end": 3
+    }
+    """
+    if not plan:
+        raise ValueError("Assembly plan is empty")
+
+    readers: dict[str, PdfReader] = {}
+    writer = PdfWriter()
+
+    for position, item in enumerate(plan, start=1):
+        try:
+            source_id = str(item["source_id"]).strip().upper()
+            start = int(item.get("start") or 1)
+            end = int(item.get("end") or 0)
+        except Exception as exc:
+            raise ValueError(f"Invalid plan item at #{position}") from exc
+
+        if source_id not in source_paths:
+            raise ValueError(f"Unknown source_id at #{position}: {source_id}")
+
+        if source_id not in readers:
+            readers[source_id] = PdfReader(str(source_paths[source_id]))
+
+        reader = readers[source_id]
+        total = len(reader.pages)
+        if end <= 0:
+            end = total
+
+        if start < 1 or end < 1 or start > end or end > total:
+            raise ValueError(
+                f"Invalid page range at #{position}: {start}-{end} for source with {total} pages"
+            )
+
+        for idx in range(start - 1, end):
+            writer.add_page(reader.pages[idx])
+
+    with output_path.open("wb") as f:
+        writer.write(f)
