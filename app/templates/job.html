@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>APDF Result</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>APDF Result</h1>
+      <p>Code: <strong class="code">{{ job.code }}</strong></p>
+    </header>
+    <section class="card">
+      <p>Status: <strong>{{ job.status }}</strong></p>
+      <p>Operation: {{ job.operation }}</p>
+      <p>{{ job.message }}</p>
+      <p>Expires at: {{ job.expires_at }}</p>
+      {% if job.outputs %}
+        <h2>Downloads</h2>
+        <ul>
+          {% for file in job.outputs %}
+            <li><a href="/download/{{ job.code }}/{{ file }}">{{ file }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <form action="/delete-job/{{ job.code }}" method="post">
+        <button class="danger">Delete Now</button>
+      </form>
+      <p><a href="/">Back</a></p>
+    </section>
+  </main>
+</body>
+</html>
