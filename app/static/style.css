@@ -38,7 +38,12 @@ button.primary {
 }
 button.primary:hover { background: var(--accent-dark); }
 button.secondary { background: #f7f8fb; }
-button.full { width: 100%; margin-top: 16px; padding: 13px; }
+button.full {
+  width: 100%;
+  margin-top: 16px;
+  padding: 13px;
+  flex-shrink: 0;
+}
 input, textarea, select {
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -78,11 +83,34 @@ input[type="file"] { width: 100%; }
   margin-bottom: 18px;
 }
 .composer {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  display: flex;
+  flex-direction: column;
   gap: 18px;
 }
-.pane { min-height: 480px; }
+.pane {
+  min-height: unset;
+}
+.source-pane {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+.source-pane .table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.source-pane thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+.assembly-pane {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
 .pane-head {
   display: flex;
   justify-content: space-between;
@@ -90,25 +118,57 @@ input[type="file"] { width: 100%; }
   gap: 12px;
   margin-bottom: 10px;
 }
-.table-wrap { overflow-x: auto; }
-table {
+.table-wrap table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
-th, td {
-  padding: 12px 8px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
+.table-wrap th,
+.table-wrap td {
+  padding: 14px 10px;
   vertical-align: middle;
 }
-th { color: var(--muted); font-size: 14px; font-weight: 700; }
-.filename {
-  max-width: 420px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.table-wrap th:nth-child(1),
+.table-wrap td:nth-child(1) {
+  width: 40%;
 }
-.page-input { width: 92px; }
+.table-wrap th:nth-child(2){
+  width: 8%;
+}
+.table-wrap td:nth-child(2) {
+  width: 8%;
+  text-align: right;
+  font-weight: bold;
+}
+.table-wrap th:nth-child(3),
+.table-wrap th:nth-child(4) {
+  width: 15%;
+}
+.table-wrap td:nth-child(3),
+.table-wrap td:nth-child(4) {
+  text-align: center;
+  width: 15%;
+}
+.table-wrap th:nth-child(5){
+  width: 22%;
+}
+.table-wrap td:nth-child(5) {
+  width: 22%;
+}
+.filename {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.page-input {
+  text-align: right;
+  width: 100px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
 .empty td {
   color: var(--muted);
   text-align: center;
@@ -121,14 +181,21 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 330px;
+
+  flex: 1;
+  min-height: 360px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 .assembly-list:empty::before {
   content: "No ranges added yet.";
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--muted);
   text-align: center;
-  padding: 110px 8px;
+  min-height: 360px;
   border: 1px dashed var(--line);
   border-radius: 14px;
 }
@@ -160,7 +227,15 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; }
 @media (max-width: 900px) {
   main { padding: 16px; }
-  .hero, .toolbar, .composer { grid-template-columns: 1fr; display: grid; }
+  .hero,
+  .toolbar {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+  .composer {
+    display: flex;
+    flex-direction: column;
+  }
   .lookup { width: 100%; }
   .lookup input { flex: 1; }
 }
@@ -184,13 +259,26 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
   font-size: 14px;
 }
 .source-actions {
-  display: flex;
-  gap: 6px;
   white-space: nowrap;
 }
 .source-actions button {
-  padding: 7px 9px;
-  font-size: 13px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+.source-actions .add-btn {
+  background: #3165c9;
+  color: white;
+  min-width: 92px;
+}
+.source-actions .remove-source {
+  min-width: 92px;
 }
 .file-picker {
   display: flex;

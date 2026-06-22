@@ -134,7 +134,7 @@ function renderSources() {
                value="${source.pages}">
       </td>
       <td class="source-actions">
-        <button type="button" class="add-btn" data-source-id="${source.source_id}">Add →</button>
+        <button type="button" class="add-btn" data-source-id="${source.source_id}">Add</button>
         <button type="button" class="remove-source" data-source-id="${source.source_id}">Remove</button>
       </td>
     `;
