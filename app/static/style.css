@@ -168,6 +168,12 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
   display: grid;
   gap: 10px;
 }
+.inupload-box {
+  display: grid;
+  gap: 8px;
+  grid-auto-flow: column;
+  justify-content: start;
+}
 .toolbar-actions {
   display: flex;
   gap: 8px;
@@ -218,4 +224,8 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
 .file-name {
   color: #667085;
   font-weight: 600;
+}
+.file-input:disabled + .file-button {
+  opacity: 0.6;
+  cursor: wait;
 }
