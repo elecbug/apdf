@@ -25,7 +25,11 @@
         <p>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</p>
       </div>
       <div class="upload-box">
-        <input id="pdfFiles" type="file" accept="application/pdf" multiple>
+        <div class="file-picker">
+          <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
+          <label for="pdfFiles" class="file-button">Select PDFs</label>
+          <span id="selectedFileLabel" class="file-name">No PDF selected</span>
+        </div>
         <div class="toolbar-actions">
           <button type="button" id="uploadButton" class="primary">Upload to Sources</button>
           <button type="button" id="clearSources" class="secondary">Clear Sources</button>
@@ -87,15 +91,82 @@
 <script>
 const fileInput = document.getElementById('pdfFiles');
 const uploadButton = document.getElementById('uploadButton');
+const selectedFileLabel = document.getElementById('selectedFileLabel');
 const clearSourcesButton = document.getElementById('clearSources');
 const sourceRows = document.getElementById('sourceRows');
 const assemblyList = document.getElementById('assemblyList');
 const clearAssembly = document.getElementById('clearAssembly');
 const buildButton = document.getElementById('buildButton');
 const statusLine = document.getElementById('statusLine');
+const clientId = getOrCreateClientId();
+const ASSEMBLY_STORAGE_KEY = `apdf_assembly_${clientId}`;
 
 let sources = [];
 let assembly = [];
+
+function updateSelectedFileLabel() {
+  const count = fileInput.files ? fileInput.files.length : 0;
+
+  if (count === 0) {
+    selectedFileLabel.textContent = 'No PDF selected';
+    return;
+  }
+
+  if (count === 1) {
+    selectedFileLabel.textContent = fileInput.files[0].name;
+    return;
+  }
+
+  selectedFileLabel.textContent = `${count} PDFs selected`;
+}
+
+function saveAssembly() {
+  localStorage.setItem(ASSEMBLY_STORAGE_KEY, JSON.stringify(assembly));
+}
+
+function loadAssembly() {
+  const raw = localStorage.getItem(ASSEMBLY_STORAGE_KEY);
+
+  if (!raw) {
+    assembly = [];
+    return;
+  }
+
+  try {
+    const loaded = JSON.parse(raw);
+
+    if (!Array.isArray(loaded)) {
+      assembly = [];
+      return;
+    }
+
+    const validSourceIds = new Set(sources.map(source => source.source_id));
+
+    assembly = loaded
+      .filter(item => validSourceIds.has(item.source_id))
+      .map(item => {
+        const source = sources.find(source => source.source_id === item.source_id);
+        const maxPage = source.pages;
+
+        const start = Math.max(1, Math.min(Number.parseInt(item.start, 10) || 1, maxPage));
+        const end = Math.max(start, Math.min(Number.parseInt(item.end, 10) || maxPage, maxPage));
+
+        return {
+          source_id: item.source_id,
+          name: source.name,
+          start,
+          end
+        };
+      });
+
+  } catch {
+    assembly = [];
+  }
+}
+
+function clearSavedAssembly() {
+  localStorage.removeItem(ASSEMBLY_STORAGE_KEY);
+}
 
 function setStatus(message) {
   statusLine.textContent = message;
@@ -109,8 +180,6 @@ function getOrCreateClientId() {
   }
   return clientId;
 }
-
-const clientId = getOrCreateClientId();
 
 function normalizePositiveInt(value, fallback) {
   const n = Number.parseInt(value, 10);
@@ -186,16 +255,24 @@ function renderAssembly() {
 
   assembly.forEach((item, index) => {
     const li = document.createElement('li');
+
     li.innerHTML = `
-      <span><strong>${index + 1}.</strong> ${item.name} <code>${item.start}-${item.end}</code></span>
+      <span>
+        <strong>${index + 1}.</strong>
+        ${item.name}
+        <code>${item.start}-${item.end}</code>
+      </span>
       <span class="item-actions">
         <button type="button" data-action="up" data-index="${index}">↑</button>
         <button type="button" data-action="down" data-index="${index}">↓</button>
         <button type="button" data-action="remove" data-index="${index}">Remove</button>
       </span>
     `;
+
     assemblyList.appendChild(li);
   });
+
+  saveAssembly();
 }
 
 uploadButton.addEventListener('click', async () => {
@@ -218,6 +295,7 @@ uploadButton.addEventListener('click', async () => {
       body: formData
     });
     fileInput.value = '';
+    updateSelectedFileLabel();
     await loadSources();
     setStatus(`Uploaded ${data.sources.length} PDF(s).`);
   } catch (error) {
@@ -227,6 +305,8 @@ uploadButton.addEventListener('click', async () => {
     uploadButton.disabled = false;
   }
 });
+
+fileInput.addEventListener('change', updateSelectedFileLabel);
 
 sourceRows.addEventListener('input', (event) => {
   const input = event.target.closest('input.page-input');
@@ -301,6 +381,7 @@ assemblyList.addEventListener('click', (event) => {
 
 clearAssembly.addEventListener('click', () => {
   assembly = [];
+  clearSavedAssembly();
   renderAssembly();
 });
 
@@ -313,6 +394,7 @@ clearSourcesButton.addEventListener('click', async () => {
     });
     sources = [];
     assembly = [];
+    clearSavedAssembly();
     renderSources();
     renderAssembly();
     setStatus('Sources cleared.');
@@ -354,6 +436,7 @@ buildButton.addEventListener('click', async () => {
 (async function init() {
   try {
     await loadSources();
+    loadAssembly();
     renderAssembly();
     setStatus(`Session: ${clientId.slice(0, 8)}...`);
   } catch (error) {

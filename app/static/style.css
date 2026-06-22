@@ -46,6 +46,13 @@ input, textarea, select {
   background: #fff;
   min-width: 0;
 }
+input.primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 700;
+}
+input.primary:hover { background: var(--accent-dark); }
 input[type="file"] { width: 100%; }
 .card {
   background: var(--panel);
@@ -178,4 +185,37 @@ th { color: var(--muted); font-size: 14px; font-weight: 700; }
 .source-actions button {
   padding: 7px 9px;
   font-size: 13px;
+}
+.file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background: #3165c9;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+.file-button:hover {
+  filter: brightness(0.95);
+}
+.file-name {
+  color: #667085;
+  font-weight: 600;
 }
