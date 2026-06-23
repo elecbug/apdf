@@ -15,6 +15,7 @@ const toolPanels = document.querySelectorAll('.tool-panel');
 const addBlankPageOp = document.getElementById('addBlankPageOp');
 const addImagePageOp = document.getElementById('addImagePageOp');
 const addRotateOp = document.getElementById('addRotateOp');
+const addDeletePagesOp = document.getElementById('addDeletePagesOp');
 
 const editOpList = document.getElementById('editOpList');
 const clearEditOps = document.getElementById('clearEditOps');
@@ -162,6 +163,10 @@ function formatOperation(op) {
 
   if (op.type === 'rotate') {
     return `pages ${op.pages}, ${op.angle}°`;
+  }
+
+  if (op.type === 'delete_pages') {
+    return `pages ${op.pages}`;
   }
 
   return JSON.stringify(op);
@@ -488,6 +493,26 @@ insertImageFile.addEventListener('change', () => {
   }
 
   insertImageName.textContent = imageFile.name;
+});
+
+addDeletePagesOp.addEventListener('click', () => {
+  if (!requireTargetPdf()) {
+    return;
+  }
+
+  const pages = document.getElementById('deletePages').value.trim();
+
+  if (!pages) {
+    alert('Enter pages to delete.');
+    return;
+  }
+
+  editOps.push({
+    type: 'delete_pages',
+    pages
+  });
+
+  renderEditOps();
 });
 
 setActiveTool('blank');

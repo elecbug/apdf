@@ -155,6 +155,9 @@ def apply_edit_operations(
         elif op_type == "rotate":
             pages = _apply_rotate_pages(pages, op)
 
+        elif op_type == "delete_pages":
+            pages = _apply_delete_pages(pages, op)
+
         else:
             raise ValueError(f"Unsupported edit operation: {op_type}")
 
@@ -241,6 +244,24 @@ def _apply_rotate_pages(
         new_pages[index].rotate(angle)
 
     return new_pages
+
+
+def _apply_delete_pages(
+    pages: list[PageObject],
+    op: dict[str, Any],
+) -> list[PageObject]:
+    pages_expr = str(op.get("pages", "")).strip()
+
+    delete_indexes = set(_parse_page_selection(pages_expr, len(pages)))
+
+    if len(delete_indexes) >= len(pages):
+        raise ValueError("Cannot delete all pages")
+
+    return [
+        page
+        for index, page in enumerate(pages)
+        if index not in delete_indexes
+    ]
 
 
 def _resolve_insert_index(
