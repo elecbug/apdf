@@ -63,10 +63,26 @@ def safe_name(name: str | None) -> str:
 async def save_upload(file: UploadFile, dst: Path) -> int:
     size = 0
     dst.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        await file.seek(0)
+    except Exception:
+        pass
+
     with dst.open("wb") as f:
-        while chunk := await file.read(1024 * 1024):
+        while True:
+            chunk = await file.read(1024 * 1024)
+            if not chunk:
+                break
+
             size += len(chunk)
             f.write(chunk)
+
+    try:
+        await file.seek(0)
+    except Exception:
+        pass
+
     return size
 
 
@@ -254,11 +270,20 @@ async def apply_edits(request: Request):
         src = root / "input" / "target.pdf"
         total_size = await save_upload(pdf_upload, src)
 
+        if total_size <= 0:
+            raise ValueError("Uploaded PDF is empty")
+
+        with src.open("rb") as f:
+            header = f.read(5)
+
+        if header != b"%PDF-":
+            raise ValueError(f"Uploaded file is not a PDF. Header: {header!r}")
+
         try:
             original_pages = pdf_ops.page_count(src)
         except Exception as exc:
             src.unlink(missing_ok=True)
-            raise ValueError("Invalid PDF") from exc
+            raise ValueError(f"Invalid PDF: {exc}") from exc
 
         image_paths: dict[str, Path] = {}
         image_ids = {
@@ -279,13 +304,7 @@ async def apply_edits(request: Request):
             image_paths[image_id] = image_path
 
         out = root / "output" / "edited.pdf"
-        pdf_ops.apply_edit_operations(
-            input_path=src,
-            operations=operations,
-            image_paths=image_paths,
-            output_path=out,
-            work_dir=root / "work",
-        )
+        pdf_ops.apply_edit_operations(src, operations, image_paths, out)
 
         total_pages = pdf_ops.page_count(out)
         mode = "inline" if total_size <= MAX_INLINE_BYTES and total_pages <= MAX_INLINE_PAGES else "job"

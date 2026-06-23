@@ -1,7 +1,3 @@
-import * as pdfjsLib from '/static/pdfjs/pdf.mjs';
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdfjs/pdf.worker.mjs';
-
 const editPdfFile = document.getElementById('editPdfFile');
 const editStatusLine = document.getElementById('editStatusLine');
 
@@ -23,6 +19,19 @@ const addRotateOp = document.getElementById('addRotateOp');
 const editOpList = document.getElementById('editOpList');
 const clearEditOps = document.getElementById('clearEditOps');
 const applyEditOps = document.getElementById('applyEditOps');
+
+let pdfjsLib = null;
+
+async function ensurePdfJs() {
+  if (pdfjsLib) {
+    return pdfjsLib;
+  }
+
+  pdfjsLib = await import('/static/pdfjs/pdf.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdfjs/pdf.worker.mjs';
+
+  return pdfjsLib;
+}
 
 let targetPdfFile = null;
 let targetPdfDocument = null;
@@ -55,8 +64,9 @@ function capitalize(text) {
 
 async function loadPdfFromFile(file) {
   const data = await file.arrayBuffer();
+  const pdfjs = await ensurePdfJs();
 
-  targetPdfDocument = await pdfjsLib.getDocument({
+  targetPdfDocument = await pdfjs.getDocument({
     data
   }).promise;
 
@@ -192,8 +202,8 @@ editPdfFile.addEventListener('change', async () => {
     await loadPdfFromFile(file);
   } catch (error) {
     console.error(error);
-    alert('Failed to load PDF.');
-    setEditStatus('Failed to load PDF.');
+    alert(`Failed to load PDF.\n\n${error?.message || error}`);
+    setEditStatus(`Failed to load PDF: ${error?.message || error}`);
   }
 });
 
@@ -372,19 +382,30 @@ applyEditOps.addEventListener('click', async () => {
     formData.append(item.id, item.file);
   });
 
-  // Backend endpoint will be implemented later.
-  // Expected endpoint:
-  // POST /edit/apply
-  //
-  // const response = await fetch('/edit/apply', {
-  //   method: 'POST',
-  //   body: formData
-  // });
-  //
-  // const result = await response.json();
-  // window.location.href = result.job_url;
+  try {
+    applyEditOps.disabled = true;
+    applyEditOps.textContent = 'Applying...';
 
-  alert('Edit backend is not implemented yet.');
+    const response = await fetch('/edit/apply', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || 'Failed to apply edits.');
+      return;
+    }
+
+    window.location.href = result.url;
+  } catch (error) {
+    console.error(error);
+    alert(`Failed to apply edits.\n\n${error?.message || error}`);
+  } finally {
+    applyEditOps.disabled = false;
+    applyEditOps.textContent = 'Apply Edits';
+  }
 });
 
 setActiveTool('blank');
