@@ -19,7 +19,13 @@ const addRotateOp = document.getElementById('addRotateOp');
 const editOpList = document.getElementById('editOpList');
 const clearEditOps = document.getElementById('clearEditOps');
 const applyEditOps = document.getElementById('applyEditOps');
+const downloadEditedPdf = document.getElementById('downloadEditedPdf');
 
+const insertImageFile = document.getElementById('insertImageFile');
+const insertImageName = document.getElementById('insertImageName');
+
+let latestDownloadUrl = null;
+let latestDownloadFilename = null;
 let pdfjsLib = null;
 
 async function ensurePdfJs() {
@@ -200,6 +206,10 @@ editPdfFile.addEventListener('change', async () => {
   try {
     setEditStatus('Loading PDF...');
     await loadPdfFromFile(file);
+
+    latestDownloadUrl = null;
+    latestDownloadFilename = null;
+    downloadEditedPdf.disabled = true;
   } catch (error) {
     console.error(error);
     alert(`Failed to load PDF.\n\n${error?.message || error}`);
@@ -276,8 +286,7 @@ addImagePageOp.addEventListener('click', () => {
     return;
   }
 
-  const imageInput = document.getElementById('insertImageFile');
-  const imageFile = imageInput.files[0];
+  const imageFile = insertImageFile.files[0];
 
   if (!imageFile) {
     alert('Choose an image file.');
@@ -375,16 +384,18 @@ applyEditOps.addEventListener('click', async () => {
   }
 
   const formData = new FormData();
-  formData.append('pdf', targetPdfFile);
+  formData.append('pdf', targetPdfFile, targetPdfFile.name || 'target.pdf');
   formData.append('operations', JSON.stringify(editOps));
 
   insertedImages.forEach((item) => {
-    formData.append(item.id, item.file);
+    formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
   });
 
   try {
     applyEditOps.disabled = true;
+    downloadEditedPdf.disabled = true;
     applyEditOps.textContent = 'Applying...';
+    setEditStatus('Applying edits...');
 
     const response = await fetch('/edit/apply', {
       method: 'POST',
@@ -395,17 +406,88 @@ applyEditOps.addEventListener('click', async () => {
 
     if (!response.ok || !result.ok) {
       alert(result.error || 'Failed to apply edits.');
+      setEditStatus(result.error || 'Failed to apply edits.');
       return;
     }
 
-    window.location.href = result.url;
+    if (!result.download_url) {
+      alert('Edit succeeded, but download URL was not returned.');
+      setEditStatus('Edit succeeded, but preview update failed.');
+      return;
+    }
+
+    setEditStatus('Loading edited preview...');
+
+    const editedResponse = await fetch(result.download_url);
+
+    if (!editedResponse.ok) {
+      throw new Error(`Failed to fetch edited PDF: ${editedResponse.status}`);
+    }
+
+    const editedBlob = await editedResponse.blob();
+    const editedFilename = result.filename || 'edited.pdf';
+
+    const editedFile = new File(
+      [editedBlob],
+      editedFilename,
+      { type: 'application/pdf' }
+    );
+
+    await loadPdfFromFile(editedFile);
+
+    editOps = [];
+    insertedImages = [];
+    renderEditOps();
+
+    latestDownloadUrl = result.download_url;
+    latestDownloadFilename = editedFilename;
+    downloadEditedPdf.disabled = false;
+
+    setEditStatus(`Applied edits. Current preview: ${editedFilename}`);
   } catch (error) {
     console.error(error);
     alert(`Failed to apply edits.\n\n${error?.message || error}`);
+    setEditStatus(`Failed to apply edits: ${error?.message || error}`);
   } finally {
     applyEditOps.disabled = false;
     applyEditOps.textContent = 'Apply Edits';
   }
+});
+
+downloadEditedPdf.addEventListener('click', () => {
+  if (latestDownloadUrl) {
+    const link = document.createElement('a');
+    link.href = latestDownloadUrl;
+    link.download = latestDownloadFilename || 'edited.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return;
+  }
+
+  if (targetPdfFile) {
+    const objectUrl = URL.createObjectURL(targetPdfFile);
+
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = targetPdfFile.name || 'edited.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(objectUrl);
+  }
+});
+
+insertImageFile.addEventListener('change', () => {
+  const imageFile = insertImageFile.files[0];
+
+  if (!imageFile) {
+    insertImageName.textContent = 'No image selected.';
+    return;
+  }
+
+  insertImageName.textContent = imageFile.name;
 });
 
 setActiveTool('blank');

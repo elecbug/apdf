@@ -74,6 +74,11 @@ button {
   font-weight: 700;
 }
 
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 button:hover {
   border-color: var(--accent);
 }
@@ -207,9 +212,9 @@ input.primary:hover {
 .file-button {
   display: inline-flex;
   width: 100%;
+  min-height: 41.2px;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
   padding: 0 20px;
   border-radius: var(--radius-md);
   background: var(--accent-alt);
@@ -256,6 +261,15 @@ input.primary:hover {
   display: grid;
   justify-content: space-between;
   grid-template-columns: auto 415px;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pane-head-auto {
+  display: grid;
+  justify-content: space-between;
+  grid-template-columns: auto auto;
   align-items: flex-start;
   gap: 12px;
   flex-shrink: 0;
@@ -671,6 +685,53 @@ input.primary:hover {
   border-radius: 7px;
 }
 
+.edit-action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+
+  padding-top: 12px;
+  background: var(--panel);
+}
+
+.edit-action-row button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.tool-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tool-field span {
+  color: var(--muted);
+}
+
+.file-button-secondary {
+  background: var(--secondary-bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.file-button-secondary:hover {
+  border-color: var(--accent);
+  filter: none;
+}
+
+.inline-file-name {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 /* Result Page */
 .result-card {
   display: grid;
@@ -891,7 +952,13 @@ input.primary:hover {
     min-height: 520px;
   }
 
+  .edit-action-row {
+    grid-template-columns: 1fr;
+  }
+
   .pdf-preview-box {
+    margin-top: 16px;
+    margin-bottom: 16px;
     min-height: 420px;
   }
 

@@ -313,8 +313,14 @@ async def apply_edits(request: Request):
             [out],
             f"Applied {len(operations)} edit operations. Pages: {original_pages} -> {total_pages}. Mode: {mode}",
         )
-        return JSONResponse({"ok": True, "code": meta.code, "url": f"/job/{meta.code}"})
-
+        return JSONResponse({
+            "ok": True,
+            "code": meta.code,
+            "url": f"/job/{meta.code}",
+            "download_url": f"/download/{meta.code}/edited.pdf",
+            "filename": "edited.pdf",
+        })
+    
     except Exception as e:
         meta.status = "failed"
         meta.message = str(e)
