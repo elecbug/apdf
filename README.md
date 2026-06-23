@@ -1,52 +1,126 @@
 # APDF
 
-APDF is a lightweight internal-network PDF utility server.
+APDF is a lightweight internal-network PDF utility server for assembling and editing PDF files.
 
-## Current UI model
+It is designed for short-lived internal use, not as a long-term document storage system.
 
-APDF uses a browser-session source cache:
+## What APDF can do
 
-1. The browser creates/stores `apdf_client_id` in `localStorage`.
-2. PDFs are uploaded to `/data/clients/<client_id>/sources/`.
-3. The source list is restored with the same browser after Back/reload while the cache is alive.
-4. The Assembly panel sends a `source_id` + page range plan to `/compose`.
-5. The generated result is stored as a normal Job and can be downloaded by result code.
+APDF currently provides two main workflows:
 
-This is intentionally not a long-term document store.
+* **Assemble PDFs**
 
-## Features
+  * Upload multiple PDF files into a browser-session source cache.
+  * Select page ranges from uploaded sources.
+  * Build a new PDF from the selected ranges in order.
+  * Download the generated PDF using a result code.
 
-- Upload PDFs into browser-session source cache
-- Restore source rows after Back/reload
-- Assemble arbitrary page ranges from stored sources
-- Result-code based download
-- Existing utility endpoints for merge, extract, delete, rotate, split, text overlay, and image overlay
+* **Edit a PDF**
+
+  * Load a PDF file in the Edit page.
+  * Preview the PDF in the browser.
+  * Queue edit operations.
+  * Apply edits and continue previewing the edited result.
+  * Download the edited PDF directly.
+
+Current edit operations include:
+
+* Insert blank pages
+* Insert PNG/JPEG/WebP images as PDF pages
+* Rotate selected pages
 
 ## Run
+
+Start APDF with Docker Compose:
 
 ```bash
 docker compose up -d --build
 ```
 
-Open:
+Open APDF in a browser:
 
 ```text
-http://SERVER_IP:8080
+http://SERVER_IP:8000
 ```
 
 ## Restart
+
+Restart the running service:
 
 ```bash
 docker compose restart
 ```
 
-After code changes:
+After code changes, rebuild and restart:
 
 ```bash
 docker compose up -d --build
 ```
 
-## Storage
+## Basic usage
+
+### 1. Assemble PDFs
+
+Open the Assemble page:
+
+```text
+http://SERVER_IP:8000/assemble
+```
+
+Steps:
+
+1. Click **Add PDFs to Sources**.
+2. Select one or more PDF files.
+3. In **Source PDFs**, set the first and last page numbers.
+4. Click **Add** to add that page range to the Assembly list.
+5. Repeat until the Assembly list contains all desired ranges.
+6. Reorder or remove Assembly items if needed.
+7. Click **Build PDF**.
+8. Open the result page and download the generated PDF.
+
+Page numbers are 1-based.
+
+### 2. Edit a PDF
+
+Open the Edit page:
+
+```text
+http://SERVER_IP:8000/edit
+```
+
+Steps:
+
+1. Click **Choose PDF to Edit**.
+2. Select a PDF file.
+3. Preview the PDF in the left panel.
+4. Choose an operation in the right panel:
+
+   * **Blank Page**
+   * **Insert Image**
+   * **Rotate Pages**
+5. Configure the operation.
+6. Click the operation add button to add it to the edit queue.
+7. Click **Apply Edits**.
+8. The preview updates to the edited PDF.
+9. Click **Download PDF** to download the latest edited result.
+
+The Edit page is designed for iterative editing. After applying edits, the edited PDF becomes the new current preview target.
+
+## Result codes
+
+Generated outputs are stored as short-lived jobs.
+
+A result code can be used to reopen a generated result:
+
+1. Enter the result code in the top-right input box.
+2. Click **Open**.
+3. Download or delete the result from the result page.
+
+Result codes are not intended as permanent links.
+
+## Storage model
+
+APDF uses two short-lived storage areas:
 
 ```text
 app/data/
@@ -54,18 +128,76 @@ app/data/
 └── jobs/      # generated output jobs
 ```
 
-Default expiration:
+### Browser-session source cache
 
-- Job outputs: 2 hours
-- Client source cache: 6 hours
+The Assemble page uses a browser-session source cache:
 
-Environment variables:
+1. The browser creates and stores `apdf_client_id` in `localStorage`.
+2. Uploaded source PDFs are stored under:
 
 ```text
-APDF_JOB_EXPIRE_SECONDS
-APDF_CLIENT_EXPIRE_SECONDS
-APDF_MAX_INLINE_BYTES
-APDF_MAX_INLINE_PAGES
-APDF_CODE_LENGTH
-APDF_CODE_ALPHABET
+app/data/clients/<client_id>/sources/
 ```
+
+3. If the user reloads the page or goes back to the page, APDF restores the source list while the server-side cache is still alive.
+4. The browser cannot repopulate file inputs after reload, so APDF restores the uploaded source list from the server-side cache instead.
+
+This cache is temporary and browser-bound.
+
+### Job output storage
+
+Generated outputs are stored as jobs under:
+
+```text
+app/data/jobs/
+```
+
+Jobs are accessed by result code and expire automatically.
+
+## Default expiration
+
+Default expiration values:
+
+```text
+Job outputs:          2 hours
+Client source cache:  6 hours
+```
+
+These values can be changed with environment variables.
+
+## Environment variables
+
+```text
+APDF_JOB_EXPIRE_SECONDS       Job output lifetime in seconds
+APDF_CLIENT_EXPIRE_SECONDS    Browser-session source cache lifetime in seconds
+APDF_MAX_INLINE_BYTES         Inline processing size threshold
+APDF_MAX_INLINE_PAGES         Inline processing page threshold
+APDF_CODE_LENGTH              Result code length
+APDF_CODE_ALPHABET            Characters used for result codes
+APDF_DATA_DIR                 Data directory path
+APDF_FONTS_DIR                Font directory path
+APDF_ACCESS_LOG_DIR           Access log directory path
+APDF_LOG_TZ                   Log timezone
+```
+
+## PDF.js files
+
+The Edit page uses PDF.js for browser-side PDF preview.
+
+The expected static file paths are:
+
+```text
+app/static/pdfjs/pdf.mjs
+app/static/pdfjs/pdf.worker.mjs
+```
+
+If the Dockerfile uses `pdfjs-dist`, these files can be copied automatically during image build.
+
+## Notes
+
+* APDF is intended for internal-network use.
+* APDF is not a long-term document management system.
+* Uploaded source files and generated outputs expire automatically.
+* For sensitive documents, use APDF only on a trusted internal network.
+* Result codes are convenient access codes, not strong authentication.
+* Delete generated jobs manually when they are no longer needed.
