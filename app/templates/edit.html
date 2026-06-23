@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% set active_page = "edit" %}
+
+{% block title %}APDF - Edit{% endblock %}
+
+{% block content %}
+<section class="card edit-hero">
+  <div>
+    <h2>Edit PDF</h2>
+    <p>Load an existing APDF result code, then apply page operations or overlays.</p>
+  </div>
+
+  <div class="edit-target">
+    <input id="editCodeInput" placeholder="Result code">
+    <button type="button" id="loadEditTarget" class="primary">Load PDF</button>
+  </div>
+</section>
+
+<section class="edit-layout">
+  <div class="card edit-pane">
+    <div class="pane-head">
+      <div>
+        <h2>Target</h2>
+        <p>Selected PDF information will appear here.</p>
+      </div>
+    </div>
+
+    <div id="editTargetInfo" class="empty-box">
+      No PDF loaded.
+    </div>
+  </div>
+
+  <div class="card edit-pane">
+    <div class="pane-head">
+      <div>
+        <h2>Operations</h2>
+        <p>Add edit operations to apply to the target PDF.</p>
+      </div>
+    </div>
+
+    <div class="edit-tools">
+      <section class="edit-tool-card">
+        <h3>Rotate Pages</h3>
+        <input id="rotatePages" placeholder="Pages: 1,3-5">
+        <select id="rotateAngle">
+          <option value="90">90°</option>
+          <option value="180">180°</option>
+          <option value="270">270°</option>
+        </select>
+        <button type="button" id="addRotateOp" class="primary">Add Rotate</button>
+      </section>
+
+      <section class="edit-tool-card">
+        <h3>Insert Blank Page</h3>
+        <input id="blankAfterPage" type="number" min="0" placeholder="After page">
+        <button type="button" id="addBlankPageOp" class="primary">Add Blank Page</button>
+      </section>
+    </div>
+  </div>
+
+  <div class="card edit-pane">
+    <div class="pane-head">
+      <div>
+        <h2>Edit Queue</h2>
+        <p>Operations will be applied in this order.</p>
+      </div>
+      <button type="button" id="clearEditOps" class="warning">Clear</button>
+    </div>
+
+    <ol id="editOpList" class="edit-op-list"></ol>
+    <button type="button" id="applyEditOps" class="primary full">Apply Edits</button>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/edit.js?v=1" defer></script>
+{% endblock %}

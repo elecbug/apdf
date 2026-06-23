@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}APDF{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css?v=4">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <h1>APDF</h1>
+        <p>Browser-session PDF assembler and editor for internal use.</p>
+      </div>
+      <form action="/lookup" method="post" class="lookup">
+        <input name="code" placeholder="Result code" maxlength="12" required>
+        <button>Open</button>
+      </form>
+    </header>
+
+    <nav class="main-tabs">
+      <a class="main-tab {% if active_page == 'assemble' %}active{% endif %}" href="/assemble">Assemble</a>
+      <a class="main-tab {% if active_page == 'edit' %}active{% endif %}" href="/edit">Edit</a>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <footer class="site-footer">
+      <div>
+        <strong>APDF</strong>
+        <span>
+          © 2026 <a href="https://github.com/elecbug" target="_blank" rel="noopener noreferrer">elecbug</a>.
+          All rights reserved.
+        </span>
+      </div>
+      <a href="https://github.com/elecbug/apdf" target="_blank" rel="noopener noreferrer">
+        GitHub Repository
+      </a>
+    </footer>
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

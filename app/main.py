@@ -76,9 +76,19 @@ def finalize_job(meta, outputs: list[Path], message: str = "Done"):
     save_meta(meta)
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/")
+def root():
+    return RedirectResponse("/assemble", status_code=303)
+
+
+@app.get("/assemble", response_class=HTMLResponse)
+def assemble_page(request: Request):
+    return templates.TemplateResponse("assemble.html", {"request": request})
+
+
+@app.get("/edit", response_class=HTMLResponse)
+def edit_page(request: Request):
+    return templates.TemplateResponse("edit.html", {"request": request})
 
 
 @app.get("/api/clients/{client_id}/sources")

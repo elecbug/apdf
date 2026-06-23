@@ -1,35 +1,51 @@
-<!doctype html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>APDF Result</title>
-  <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-  <main>
-    <header>
-      <h1>APDF Result</h1>
+{% extends "base.html" %}
+
+{% set active_page = "result" %}
+
+{% block title %}APDF - Result{% endblock %}
+
+{% block content %}
+<section class="card result-card">
+  <div class="result-head">
+    <div>
+      <h2>Result</h2>
       <p>Code: <strong class="code">{{ job.code }}</strong></p>
-    </header>
-    <section class="card">
-      <p>Status: <strong>{{ job.status }}</strong></p>
-      <p>Operation: {{ job.operation }}</p>
-      <p>{{ job.message }}</p>
-      <p>Expires at: {{ job.expires_at }}</p>
-      {% if job.outputs %}
-        <h2>Downloads</h2>
-        <ul>
-          {% for file in job.outputs %}
-            <li><a href="/download/{{ job.code }}/{{ file }}">{{ file }}</a></li>
-          {% endfor %}
-        </ul>
-      {% endif %}
+    </div>
+
+    <div class="result-actions">
+      <a class="button-link secondary" href="/assemble">Back to Assemble</a>
       <form action="/delete-job/{{ job.code }}" method="post">
-        <button class="danger">Delete Now</button>
+        <button type="submit" class="warning">Delete Now</button>
       </form>
-      <p><a href="/">Back</a></p>
+    </div>
+  </div>
+
+  <div class="result-meta">
+    <p>Status: <strong>{{ job.status }}</strong></p>
+    <p>Operation: {{ job.operation }}</p>
+    <p>Message: {{ job.message }}</p>
+    <p>Expires at: {{ job.expires_at }}</p>
+  </div>
+
+  {% if job.outputs %}
+    <section class="download-section">
+      <h2>Downloads</h2>
+
+      <ul class="download-list">
+        {% for file in job.outputs %}
+          <li>
+            <span>{{ file }}</span>
+            <a class="button-link primary" href="/download/{{ job.code }}/{{ file }}">
+              Download
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
     </section>
-  </main>
-</body>
-</html>
+  {% else %}
+    <div class="empty-box">
+      No downloadable output is available.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
