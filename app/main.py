@@ -24,6 +24,8 @@ from app.services.client_store import (
     touch_client,
 )
 from app.services.job_store import cleanup_expired, create_job, find_by_code, job_path, save_meta
+from app.services.audit_log import write_access_log
+
 
 app = FastAPI(title="APDF", version="0.2.0")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
@@ -31,11 +33,25 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 @app.middleware("http")
-async def cleanup_middleware(request: Request, call_next):
+async def cleanup_and_access_log_middleware(request: Request, call_next):
     # Small internal tool: opportunistic cleanup per request.
     cleanup_expired()
     cleanup_expired_clients()
-    return await call_next(request)
+
+    status_code = 500
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        # Do not log PDF contents, filenames, client_id, source_id, job code, or user-agent.
+        # Only access IP + endpoint-level request metadata are recorded.
+        if not request.url.path.startswith("/static/"):
+            try:
+                write_access_log(request, status_code)
+            except Exception:
+                pass
 
 
 def safe_name(name: str | None) -> str:

@@ -6,6 +6,8 @@ DATA_DIR = Path(os.getenv("APDF_DATA_DIR", BASE_DIR / "data"))
 JOBS_DIR = DATA_DIR / "jobs"
 CLIENTS_DIR = DATA_DIR / "clients"
 FONTS_DIR = Path(os.getenv("APDF_FONTS_DIR", BASE_DIR / "fonts"))
+LOG_DIR = DATA_DIR / "logs"
+AUDIT_LOG_PATH = LOG_DIR / "audit.jsonl"
 
 MAX_INLINE_BYTES = int(os.getenv("APDF_MAX_INLINE_BYTES", 10 * 1024 * 1024))
 MAX_INLINE_PAGES = int(os.getenv("APDF_MAX_INLINE_PAGES", 200))
