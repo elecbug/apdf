@@ -52,9 +52,6 @@ def get_route_template(request: Request) -> str:
 def get_safe_path_param(key: str, value: Any) -> str:
     value_str = str(value)
 
-    if key == "filename":
-        return hash_filename(value_str) or ""
-
     return value_str
 
 

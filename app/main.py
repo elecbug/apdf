@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from pathlib import Path
 from typing import Annotated
@@ -27,7 +28,7 @@ from app.services.job_store import cleanup_expired, create_job, find_by_code, jo
 from app.services.audit_log import write_access_log
 
 
-app = FastAPI(title="APDF", version="0.2.0")
+app = FastAPI(title="APDF", version="0.3.0")
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
@@ -67,6 +68,47 @@ async def save_upload(file: UploadFile, dst: Path) -> int:
             size += len(chunk)
             f.write(chunk)
     return size
+
+
+def is_upload_file(value) -> bool:
+    return hasattr(value, "filename") and hasattr(value, "read")
+
+
+def sanitize_image_id(image_id: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "", image_id.strip())
+    if len(safe) < 3 or len(safe) > 80:
+        raise ValueError("Invalid image_id")
+    return safe
+
+
+def safe_image_extension(upload: UploadFile) -> str:
+    filename = upload.filename or ""
+    suffix = Path(filename).suffix.lower()
+    content_type = (upload.content_type or "").lower()
+
+    if suffix in {".png", ".jpg", ".jpeg", ".webp"}:
+        return suffix
+
+    if content_type == "image/png":
+        return ".png"
+    if content_type == "image/jpeg":
+        return ".jpg"
+    if content_type == "image/webp":
+        return ".webp"
+
+    raise ValueError("Only PNG, JPEG, or WebP images are allowed")
+
+
+def load_edit_operations(raw: str) -> list[dict]:
+    try:
+        operations = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Invalid operations JSON") from exc
+
+    if not isinstance(operations, list):
+        raise ValueError("operations must be a list")
+
+    return operations
 
 
 def finalize_job(meta, outputs: list[Path], message: str = "Done"):
@@ -180,6 +222,80 @@ async def compose(request: Request):
         mode = "inline" if total_size <= MAX_INLINE_BYTES and total_pages <= MAX_INLINE_PAGES else "job"
         finalize_job(meta, [out], f"Assembled {len(plan)} ranges into {total_pages} pages. Mode: {mode}")
         return JSONResponse({"ok": True, "code": meta.code, "url": f"/job/{meta.code}"})
+    except Exception as e:
+        meta.status = "failed"
+        meta.message = str(e)
+        save_meta(meta)
+        return JSONResponse({"ok": False, "code": meta.code, "url": f"/job/{meta.code}", "error": str(e)}, status_code=400)
+
+
+@app.post("/edit/apply")
+async def apply_edits(request: Request):
+    meta = create_job("edit")
+    root = job_path(meta.job_id)
+
+    try:
+        form = await request.form()
+
+        pdf_upload = form.get("pdf")
+        if not is_upload_file(pdf_upload):
+            raise ValueError("PDF file is required")
+        if not pdf_upload.filename or not pdf_upload.filename.lower().endswith(".pdf"):
+            raise ValueError("Only PDF files are allowed")
+
+        operations_raw = form.get("operations")
+        if not isinstance(operations_raw, str):
+            raise ValueError("operations field is required")
+
+        operations = load_edit_operations(operations_raw)
+        if not operations:
+            raise ValueError("operations is empty")
+
+        src = root / "input" / "target.pdf"
+        total_size = await save_upload(pdf_upload, src)
+
+        try:
+            original_pages = pdf_ops.page_count(src)
+        except Exception as exc:
+            src.unlink(missing_ok=True)
+            raise ValueError("Invalid PDF") from exc
+
+        image_paths: dict[str, Path] = {}
+        image_ids = {
+            sanitize_image_id(str(op.get("image_id", "")))
+            for op in operations
+            if isinstance(op, dict) and str(op.get("type", "")).strip().lower() == "insert_image_page"
+        }
+
+        image_dir = root / "input" / "images"
+        for image_id in image_ids:
+            image_upload = form.get(image_id)
+            if not is_upload_file(image_upload):
+                raise ValueError(f"Missing image file: {image_id}")
+
+            ext = safe_image_extension(image_upload)
+            image_path = image_dir / f"{image_id}{ext}"
+            total_size += await save_upload(image_upload, image_path)
+            image_paths[image_id] = image_path
+
+        out = root / "output" / "edited.pdf"
+        pdf_ops.apply_edit_operations(
+            input_path=src,
+            operations=operations,
+            image_paths=image_paths,
+            output_path=out,
+            work_dir=root / "work",
+        )
+
+        total_pages = pdf_ops.page_count(out)
+        mode = "inline" if total_size <= MAX_INLINE_BYTES and total_pages <= MAX_INLINE_PAGES else "job"
+        finalize_job(
+            meta,
+            [out],
+            f"Applied {len(operations)} edit operations. Pages: {original_pages} -> {total_pages}. Mode: {mode}",
+        )
+        return JSONResponse({"ok": True, "code": meta.code, "url": f"/job/{meta.code}"})
+
     except Exception as e:
         meta.status = "failed"
         meta.message = str(e)
