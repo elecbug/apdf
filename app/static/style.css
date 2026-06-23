@@ -485,39 +485,95 @@ input.primary:hover {
   margin-bottom: 18px;
 }
 
-.edit-target {
-  display: flex;
-  gap: 8px;
+.edit-upload-box {
+  width: min(420px, 100%);
 }
 
-.edit-layout {
+.edit-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.edit-preview-pane {
+  height: 720px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  overflow: hidden;
 }
 
-.edit-pane {
-  min-height: 260px;
+.edit-control-pane {
+  height: 720px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-.empty-box {
+.preview-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 160px;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-lg);
-  color: var(--muted);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-.edit-tools {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+.preview-controls input {
+  width: 78px;
+  text-align: right;
+}
+
+.pdf-preview-box {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--secondary-bg);
+}
+
+.pdf-canvas {
+  display: none;
+  max-width: 100%;
+  height: auto;
+  background: var(--white);
+  box-shadow: var(--shadow-card);
+}
+
+.edit-control-pane {
   gap: 12px;
 }
 
-.edit-tool-card {
+.edit-tool-tabs {
   display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edit-tool-button {
+  width: 100%;
+  min-height: 40px;
+  text-align: left;
+  background: var(--secondary-bg);
+}
+
+.edit-tool-button.active {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+.edit-tool-panel {
+  flex-shrink: 0;
+}
+
+.tool-panel {
+  display: none;
   gap: 10px;
   padding: 14px;
   border: 1px solid var(--line);
@@ -525,17 +581,57 @@ input.primary:hover {
   background: var(--panel-soft);
 }
 
-.edit-tool-card h3 {
+.tool-panel.active {
+  display: grid;
+}
+
+.tool-panel h3 {
   margin: 0;
+}
+
+.tool-panel p {
+  margin-bottom: 4px;
+}
+
+.tool-panel label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tool-panel label input,
+.tool-panel label select {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.edit-queue-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.edit-queue-head h2 {
+  margin-bottom: 4px;
 }
 
 .edit-op-list {
   list-style: none;
-  padding: 0;
+  padding: 0 4px 0 0;
   margin: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  min-height: 160px;
+
+  flex: 0 0 auto;
+  min-height: 140px;
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .edit-op-list:empty::before {
@@ -543,10 +639,12 @@ input.primary:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 160px;
+  min-height: 140px;
+  height: 100%;
   border: 1px dashed var(--line);
   border-radius: var(--radius-lg);
   color: var(--muted);
+  text-align: center;
 }
 
 .edit-op-list li {
@@ -558,6 +656,19 @@ input.primary:hover {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--panel-soft);
+}
+
+.edit-op-list li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edit-op-list code {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  padding: 2px 6px;
+  border-radius: 7px;
 }
 
 /* Result Page */
@@ -766,8 +877,42 @@ input.primary:hover {
     align-items: stretch;
   }
 
-  .edit-target {
+  .edit-upload-box {
+    width: 100%;
+  }
+
+  .edit-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-preview-pane,
+  .edit-control-pane {
+    height: auto;
+    min-height: 520px;
+  }
+
+  .pdf-preview-box {
+    min-height: 420px;
+  }
+
+  .preview-controls {
+    width: 100%;
+  }
+
+  .preview-controls button {
+    flex: 1;
+  }
+
+  .preview-controls input {
+    flex: 0 0 80px;
+  }
+
+  .edit-queue-head {
     flex-direction: column;
+  }
+
+  .edit-queue-head button {
+    width: 100%;
   }
 
   .main-tabs {
