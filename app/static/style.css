@@ -137,10 +137,6 @@ input.primary:hover {
   background: var(--accent-dark);
 }
 
-input[type="file"] {
-  width: 100%;
-}
-
 /* Cards */
 .card {
   background: var(--panel);
@@ -172,7 +168,7 @@ input[type="file"] {
 /* Toolbar */
 .toolbar {
   display: grid;
-  grid-template-columns: 1fr 415px;
+  grid-template-columns: auto 415px;
   gap: 24px;
   align-items: center;
   margin-bottom: 18px;
