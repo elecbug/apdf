@@ -5,34 +5,24 @@
 {% block title %}APDF - Assemble{% endblock %}
 
 {% block content %}
-<section class="toolbar card">
-  <div>
-    <h2>Load PDFs</h2>
-    <p>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</p>
-  </div>
-
-  <div class="upload-box">
-    <div class="inupload-box">
-      <div class="file-picker">
-        <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
-        <label for="pdfFiles" class="button-like primary file-button">Add PDFs to Sources</label>
-      </div>
-
-      <div class="toolbar-actions">
-        <button type="button" id="clearSources" class="warning width-full">Clear Sources</button>
-      </div>
-    </div>
-
-    <p id="statusLine" class="status-line">Ready.</p>
-  </div>
-</section>
-
 <section class="composer">
   <div class="card pane source-pane">
     <div class="pane-head">
       <div>
         <h2>Sources</h2>
-        <p>Set a page range, then press Add. Last page is filled from the real PDF page count.</p>
+        <p>Set a page range, then press Add.</p>
+      </div>
+      <div class="upload-box">
+        <div class="split-box">
+          <div class="file-picker">
+            <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
+            <label for="pdfFiles" class="button-like primary file-button">Add PDFs to Sources</label>
+          </div>
+          <div class="toolbar-actions">
+            <button type="button" id="clearSources" class="warning width-full">Clear Sources</button>
+          </div>
+        </div>
+        <p id="statusLine" class="status-line">Ready.</p>
       </div>
     </div>
 
@@ -60,7 +50,7 @@
         <h2>Result</h2>
         <p>Segments are exported in this order.</p>
       </div>
-      <button type="button" class="warning" id="clearAssembly">Clear</button>
+      <button type="button" class="warning width-full" id="clearAssembly">Clear</button>
     </div>
 
     <ol id="assemblyList" class="assembly-list"></ol>
@@ -74,6 +64,7 @@
     <li>Page numbers are 1-based.</li>
     <li>The source cache is bound to this browser through localStorage client_id.</li>
     <li>Browsers cannot repopulate file inputs after Back/reload, so APDF restores the server-side source cache instead.</li>
+    <li>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</li>
     <li>The backend validates all source_id and page ranges during export.</li>
   </ul>
 </details>

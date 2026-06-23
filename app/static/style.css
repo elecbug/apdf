@@ -109,10 +109,6 @@ button.full {
   flex-shrink: 0;
 }
 
-button.width-full {
-  width: 100%;
-}
-
 /* Inputs */
 input,
 textarea,
@@ -176,9 +172,11 @@ input.primary:hover {
 .upload-box {
   display: grid;
   gap: 10px;
+  width: 100%;
 }
 
-.inupload-box {
+.split-box {
+  width: 100%;
   display: grid;
   grid-template-columns: 1fr 1fr;
   justify-content: start;
@@ -262,8 +260,9 @@ input.primary:hover {
 }
 
 .pane-head {
-  display: flex;
+  display: grid;
   justify-content: space-between;
+  grid-template-columns: auto 415px;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 10px;
@@ -575,8 +574,9 @@ input.primary:hover {
 }
 
 .result-head {
-  display: flex;
+  display: grid;
   justify-content: space-between;
+  grid-template-columns: auto 415px;
   align-items: flex-start;
   gap: 16px;
 }
@@ -591,17 +591,6 @@ input.primary:hover {
   color: var(--accent-text);
   padding: 3px 8px;
   border-radius: 7px;
-}
-
-.result-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.result-actions form {
-  margin: 0;
 }
 
 .result-meta {
@@ -736,6 +725,10 @@ input.primary:hover {
   gap: 18px;
 }
 
+.width-full {
+  width: 100%;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   main {
@@ -761,7 +754,7 @@ input.primary:hover {
     flex: 1;
   }
 
-  .inupload-box {
+  .split-box {
     grid-auto-flow: row;
   }
 
@@ -794,17 +787,8 @@ input.primary:hover {
   }
 
   .result-head {
+    display: flex;
     flex-direction: column;
-  }
-
-  .result-actions {
-    width: 100%;
-  }
-
-  .result-actions form,
-  .result-actions button,
-  .result-actions .button-link {
-    width: 100%;
   }
 
   .download-list li {
@@ -816,7 +800,12 @@ input.primary:hover {
     width: 100%;
   }
 
-  /* Mobile source table card layout */
+  .pane-head {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
   .source-pane .table-wrap {
     overflow-x: hidden;
   }

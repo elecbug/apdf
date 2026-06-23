@@ -12,11 +12,15 @@
       <p>Code: <strong class="code">{{ job.code }}</strong></p>
     </div>
 
-    <div class="result-actions">
-      <a class="button-link secondary" href="/assemble">Back to Assemble</a>
-      <form action="/delete-job/{{ job.code }}" method="post">
-        <button type="submit" class="warning">Delete Now</button>
-      </form>
+    <div class="split-box">
+      <div>
+        <a class="button-link secondary width-full" href="/assemble">Back to Assemble</a>
+      </div>
+      <div>
+        <form action="/delete-job/{{ job.code }}" method="post">
+          <button type="submit" class="warning width-full">Delete Now</button>
+        </form>
+      </div>
     </div>
   </div>
 
