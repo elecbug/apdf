@@ -72,6 +72,7 @@ button {
   padding: 9px 13px;
   cursor: pointer;
   font-weight: 700;
+  min-width: 100px;
 }
 
 button:hover {
@@ -107,6 +108,10 @@ button.full {
   margin-top: 16px;
   padding: 13px;
   flex-shrink: 0;
+}
+
+button.width-full {
+  width: 100%;
 }
 
 /* Inputs */
@@ -167,7 +172,7 @@ input[type="file"] {
 /* Toolbar */
 .toolbar {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 1.1fr;
   gap: 24px;
   align-items: center;
   margin-bottom: 18px;
@@ -180,7 +185,7 @@ input[type="file"] {
 
 .inupload-box {
   display: grid;
-  grid-auto-flow: column;
+  grid-template-columns: 1fr 1fr;
   justify-content: start;
   gap: 8px;
 }
@@ -199,6 +204,7 @@ input[type="file"] {
 /* File Picker */
 .file-picker {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
@@ -298,7 +304,8 @@ input[type="file"] {
 /* PDF name */
 .table-wrap th:nth-child(1),
 .table-wrap td:nth-child(1) {
-  width: 40%;
+  text-align: left;
+  width: 50%;
 }
 
 /* Pages */
@@ -317,7 +324,7 @@ input[type="file"] {
 .table-wrap th:nth-child(4),
 .table-wrap td:nth-child(3),
 .table-wrap td:nth-child(4) {
-  width: 15%;
+  width: 10%;
   text-align: center;
 }
 
