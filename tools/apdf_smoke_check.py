@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APDF endpoint smoke/contract checker.
+APDF endpoint smoke/contract checker for the split Python routing model.
 
 Run this while APDF is already running, for example:
 
@@ -24,6 +24,7 @@ import urllib.parse
 import urllib.request
 import uuid
 from dataclasses import dataclass
+from html import unescape
 from pathlib import Path
 from typing import Any, Callable
 
@@ -34,6 +35,16 @@ PNG_MIME = "image/png"
 SMOKE_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
 )
+
+REMOVED_LEGACY_ENDPOINTS = [
+    "/merge",
+    "/extract",
+    "/delete",
+    "/rotate",
+    "/split",
+    "/overlay/text",
+    "/overlay/image",
+]
 
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -64,6 +75,15 @@ class StepResult:
     detail: str = ""
 
 
+@dataclass
+class EditResult:
+    code: str
+    download_url: str
+    original_pages: int | None
+    edited_pages: int | None
+    message: str
+
+
 class APDFClient:
     def __init__(self, base_url: str, timeout: float = 30.0):
         self.base_url = base_url.rstrip("/") + "/"
@@ -84,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/1.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/2.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -178,8 +198,10 @@ def build_multipart(
 
 def assert_status(response: HttpResponse, allowed: set[int], label: str) -> None:
     if response.status not in allowed:
-        snippet = response.text[:400].replace("\n", " ")
-        raise AssertionError(f"{label}: expected {sorted(allowed)}, got {response.status}. Body: {snippet}")
+        snippet = response.text[:600].replace("\n", " ")
+        raise AssertionError(
+            f"{label}: expected {sorted(allowed)}, got {response.status}. Body: {snippet}"
+        )
 
 
 def assert_json_ok(response: HttpResponse, label: str) -> Any:
@@ -194,24 +216,29 @@ def assert_json_ok(response: HttpResponse, label: str) -> Any:
 def assert_pdf_response(response: HttpResponse, label: str) -> None:
     assert_status(response, {200}, label)
     if not response.body.startswith(b"%PDF-"):
-        snippet = response.body[:20]
+        snippet = response.body[:40]
         raise AssertionError(f"{label}: response is not a PDF. Header={snippet!r}")
-
-
-def assert_redirect_to_job(response: HttpResponse, label: str) -> str:
-    assert_status(response, {303, 307, 308}, label)
-    location = response.headers.get("location", "")
-    match = re.search(r"/job/([A-Za-z0-9]+)", location)
-    if not match:
-        raise AssertionError(f"{label}: redirect location is not /job/<code>: {location!r}")
-    return match.group(1).upper()
 
 
 def parse_job_status(html: str) -> str | None:
     match = re.search(r"Status:\s*<strong>\s*([^<]+?)\s*</strong>", html, flags=re.I)
     if match:
-        return match.group(1).strip().lower()
+        return unescape(match.group(1)).strip().lower()
     return None
+
+
+def parse_job_message(html: str) -> str:
+    match = re.search(r"Message:\s*([^<]+)\s*</p>", html, flags=re.I)
+    if match:
+        return unescape(match.group(1)).strip()
+    return ""
+
+
+def parse_page_transition(message: str) -> tuple[int | None, int | None]:
+    match = re.search(r"Pages:\s*(\d+)\s*->\s*(\d+)", message)
+    if not match:
+        return None, None
+    return int(match.group(1)), int(match.group(2))
 
 
 def parse_download_links(html: str, code: str) -> list[str]:
@@ -225,13 +252,13 @@ class SmokeRunner:
         client: APDFClient,
         pdf_path: Path,
         *,
-        skip_legacy: bool = False,
+        expect_legacy_removed: bool = False,
         keep_jobs: bool = False,
         fail_fast: bool = False,
     ):
         self.client = client
         self.pdf_path = pdf_path
-        self.skip_legacy = skip_legacy
+        self.expect_legacy_removed = expect_legacy_removed
         self.keep_jobs = keep_jobs
         self.fail_fast = fail_fast
         self.results: list[StepResult] = []
@@ -273,16 +300,14 @@ class SmokeRunner:
         self.step("source API: delete one source", self.check_source_delete_one)
         self.step("source API: clear sources", self.check_source_clear_all)
 
-        self.step("POST /edit/apply + download", self.check_edit_apply)
+        self.step("POST /edit/apply insert_blank", self.check_edit_insert_blank)
+        self.step("POST /edit/apply insert_image_page", self.check_edit_insert_image_page)
+        self.step("POST /edit/apply rotate", self.check_edit_rotate)
+        self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
+        self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
-        if not self.skip_legacy:
-            self.step("POST /merge", self.check_merge)
-            self.step("POST /extract", self.check_extract)
-            self.step("POST /delete", self.check_delete_pages)
-            self.step("POST /rotate", self.check_rotate)
-            self.step("POST /split", self.check_split)
-            self.step("POST /overlay/text", self.check_overlay_text)
-            self.step("POST /overlay/image", self.check_overlay_image)
+        if self.expect_legacy_removed:
+            self.step("legacy endpoints removed", self.check_legacy_removed)
 
         self.print_summary()
         return 0 if all(result.ok for result in self.results) else 1
@@ -366,9 +391,7 @@ class SmokeRunner:
         return f"code={code}, pages=1-{end_page}"
 
     def check_lookup(self) -> str:
-        # Create a small job first, then verify that the lookup form redirects to it.
         if not self.source_id:
-            # Re-upload if the previous step deleted/cleared early in a failed run.
             self.check_source_upload()
         payload = {
             "client_id": self.client_id,
@@ -404,151 +427,151 @@ class SmokeRunner:
             raise AssertionError(f"DELETE sources: ok is not true: {data!r}")
         return "cleared"
 
-    def check_edit_apply(self) -> str:
+    def check_edit_insert_blank(self) -> str:
+        result = self.apply_edit(
+            [{"type": "insert_blank", "position": "after", "page": 1, "size": "same"}],
+            expected_delta=1,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_insert_image_page(self) -> str:
+        image_id = "smoke_image"
+        result = self.apply_edit(
+            [{"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"}],
+            files=[(image_id, "smoke.png", PNG_MIME, SMOKE_PNG)],
+            expected_delta=1,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_rotate(self) -> str:
+        result = self.apply_edit(
+            [{"type": "rotate", "pages": "1", "angle": 90}],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_delete_pages(self) -> str:
+        if self.page_count <= 1:
+            return "skipped: input PDF has only one page"
+        result = self.apply_edit(
+            [{"type": "delete_pages", "pages": str(self.page_count)}],
+            expected_delta=-1,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_combined_queue(self) -> str:
+        if self.page_count <= 1:
+            return "skipped: input PDF has only one page"
+
+        image_id = "combo_image"
         operations = [
             {"type": "insert_blank", "position": "after", "page": 1, "size": "same"},
+            {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
+            {"type": "rotate", "pages": "1,3", "angle": 180},
+            {"type": "delete_pages", "pages": "2"},
         ]
+        # +1 blank, +1 image, -1 delete => net +1.
+        result = self.apply_edit(
+            operations,
+            files=[(image_id, "combo.png", PNG_MIME, SMOKE_PNG)],
+            expected_delta=1,
+        )
+        return self.format_edit_result(result)
+
+    def apply_edit(
+        self,
+        operations: list[dict[str, Any]],
+        *,
+        files: list[tuple[str, str, str, bytes]] | None = None,
+        expected_delta: int | None = None,
+    ) -> EditResult:
+        multipart_files = [("pdf", self.pdf_filename, PDF_MIME, self.pdf_bytes)]
+        multipart_files.extend(files or [])
+
         response = self.client.post_multipart(
             "/edit/apply",
             fields={"operations": json.dumps(operations)},
-            files=[("pdf", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
+            files=multipart_files,
         )
         data = assert_json_ok(response, "POST /edit/apply")
         if data.get("ok") is not True:
             raise AssertionError(f"POST /edit/apply: ok is not true: {data!r}")
-        download_url = data.get("download_url")
+
         code = str(data.get("code", "")).upper()
+        download_url = data.get("download_url")
+        if not code:
+            raise AssertionError(f"POST /edit/apply: missing code: {data!r}")
         if not isinstance(download_url, str) or not download_url:
             raise AssertionError(f"POST /edit/apply: missing download_url: {data!r}")
+
         assert_pdf_response(self.client.get(download_url), "download edited PDF")
-        if code:
-            self.delete_job(code)
-        return f"download_url={download_url}"
+        job_info = self.assert_job_done_and_download(code, "edited.pdf")
+        message = job_info["message"]
+        original_pages, edited_pages = parse_page_transition(message)
 
-    def check_merge(self) -> str:
-        code = self.post_redirect_job(
-            "/merge",
-            files=[
-                ("files", f"a_{self.pdf_filename}", PDF_MIME, self.pdf_bytes),
-                ("files", f"b_{self.pdf_filename}", PDF_MIME, self.pdf_bytes),
-            ],
-        )
-        self.assert_job_done_and_download(code, "merged.pdf")
+        if expected_delta is not None and original_pages is not None and edited_pages is not None:
+            expected_pages = original_pages + expected_delta
+            if edited_pages != expected_pages:
+                raise AssertionError(
+                    f"edit page count mismatch: expected {original_pages} -> {expected_pages}, "
+                    f"got {original_pages} -> {edited_pages}. Message: {message!r}"
+                )
+
         self.delete_job(code)
-        return f"code={code}"
-
-    def check_extract(self) -> str:
-        pages = "1-2" if self.page_count >= 2 else "1"
-        code = self.post_redirect_job(
-            "/extract",
-            fields={"pages": pages},
-            files=[("file", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
+        return EditResult(
+            code=code,
+            download_url=str(download_url),
+            original_pages=original_pages,
+            edited_pages=edited_pages,
+            message=message,
         )
-        self.assert_job_done_and_download(code, "extracted.pdf")
-        self.delete_job(code)
-        return f"code={code}, pages={pages}"
 
-    def check_delete_pages(self) -> str:
-        if self.page_count <= 1:
-            return "skipped: input PDF has only one page"
-        pages = str(self.page_count)
-        code = self.post_redirect_job(
-            "/delete",
-            fields={"pages": pages},
-            files=[("file", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
-        )
-        self.assert_job_done_and_download(code, "deleted.pdf")
-        self.delete_job(code)
-        return f"code={code}, pages={pages}"
+    def format_edit_result(self, result: EditResult) -> str:
+        if result.original_pages is not None and result.edited_pages is not None:
+            return f"code={result.code}, pages={result.original_pages}->{result.edited_pages}"
+        return f"code={result.code}, download_url={result.download_url}"
 
-    def check_rotate(self) -> str:
-        code = self.post_redirect_job(
-            "/rotate",
-            fields={"pages": "1", "angle": "90"},
-            files=[("file", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
-        )
-        self.assert_job_done_and_download(code, "rotated.pdf")
-        self.delete_job(code)
-        return f"code={code}"
+    def check_legacy_removed(self) -> str:
+        statuses: dict[str, int] = {}
+        for path in REMOVED_LEGACY_ENDPOINTS:
+            response = self.client.post_multipart(path)
+            statuses[path] = response.status
+            if response.status != 404:
+                snippet = response.text[:300].replace("\n", " ")
+                raise AssertionError(
+                    f"{path}: expected 404 after legacy route removal, got {response.status}. Body: {snippet}"
+                )
+        return ", ".join(f"{path}=404" for path in statuses)
 
-    def check_split(self) -> str:
-        ranges = "1-2" if self.page_count >= 2 else "1"
-        code = self.post_redirect_job(
-            "/split",
-            fields={"ranges": ranges},
-            files=[("file", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
-        )
-        links = self.assert_job_done_and_download(code, expected_filename=None)
-        self.delete_job(code)
-        return f"code={code}, ranges={ranges}, downloads={len(links)}"
-
-    def check_overlay_text(self) -> str:
-        code = self.post_redirect_job(
-            "/overlay/text",
-            fields={
-                "page": "1",
-                "text": "APDF smoke test",
-                "x": "72",
-                "y": "72",
-                "font_size": "14",
-                "opacity": "0.85",
-            },
-            files=[("file", self.pdf_filename, PDF_MIME, self.pdf_bytes)],
-        )
-        self.assert_job_done_and_download(code, "text_overlay.pdf")
-        self.delete_job(code)
-        return f"code={code}"
-
-    def check_overlay_image(self) -> str:
-        code = self.post_redirect_job(
-            "/overlay/image",
-            fields={
-                "page": "1",
-                "x": "72",
-                "y": "72",
-                "width": "64",
-                "height": "0",
-                "opacity": "0.9",
-            },
-            files=[
-                ("file", self.pdf_filename, PDF_MIME, self.pdf_bytes),
-                ("image", "smoke.png", PNG_MIME, SMOKE_PNG),
-            ],
-        )
-        self.assert_job_done_and_download(code, "image_overlay.pdf")
-        self.delete_job(code)
-        return f"code={code}"
-
-    def post_redirect_job(
-        self,
-        path: str,
-        *,
-        fields: dict[str, str] | None = None,
-        files: list[tuple[str, str, str, bytes]] | None = None,
-    ) -> str:
-        response = self.client.post_multipart(path, fields=fields or {}, files=files or [])
-        return assert_redirect_to_job(response, f"POST {path}")
-
-    def assert_job_done_and_download(self, code: str, expected_filename: str | None) -> list[str]:
+    def assert_job_done_and_download(self, code: str, expected_filename: str | None) -> dict[str, Any]:
         job_response = self.client.get(f"/job/{urllib.parse.quote(code)}")
         assert_status(job_response, {200}, f"GET /job/{code}")
         html = job_response.text
         status = parse_job_status(html)
         if status != "done":
-            snippet = html[:500].replace("\n", " ")
-            raise AssertionError(f"job {code}: expected status=done, got {status!r}. HTML: {snippet}")
+            message = parse_job_message(html)
+            snippet = html[:700].replace("\n", " ")
+            raise AssertionError(
+                f"job {code}: expected status=done, got {status!r}. "
+                f"Message: {message!r}. HTML: {snippet}"
+            )
 
         if expected_filename:
             download_path = f"/download/{urllib.parse.quote(code)}/{urllib.parse.quote(expected_filename)}"
             assert_pdf_response(self.client.get(download_path), f"GET {download_path}")
-            return [download_path]
+            links = [download_path]
+        else:
+            links = parse_download_links(html, code)
+            if not links:
+                raise AssertionError(f"job {code}: no download links found")
+            for link in links:
+                assert_pdf_response(self.client.get(link), f"GET {link}")
 
-        links = parse_download_links(html, code)
-        if not links:
-            raise AssertionError(f"job {code}: no download links found")
-        for link in links:
-            assert_pdf_response(self.client.get(link), f"GET {link}")
-        return links
+        return {
+            "status": status,
+            "message": parse_job_message(html),
+            "downloads": links,
+        }
 
     def delete_job(self, code: str) -> None:
         if self.keep_jobs:
@@ -562,7 +585,10 @@ class SmokeRunner:
         print("\n=== APDF smoke check summary ===")
         for result in self.results:
             mark = "PASS" if result.ok else "FAIL"
-            print(f"{mark:4} {result.elapsed_ms:8.1f} ms  {result.name} {('- ' + result.detail) if result.detail else ''}")
+            print(
+                f"{mark:4} {result.elapsed_ms:8.1f} ms  {result.name} "
+                f"{('- ' + result.detail) if result.detail else ''}"
+            )
         print(f"\nTotal: {len(self.results)}, Passed: {passed}, Failed: {failed}")
 
 
@@ -571,7 +597,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--base-url", default="http://127.0.0.1:8000", help="APDF server base URL")
     parser.add_argument("--pdf", default="test.pdf", help="Path to a small test PDF")
     parser.add_argument("--timeout", type=float, default=30.0, help="HTTP timeout in seconds")
-    parser.add_argument("--skip-legacy", action="store_true", help="Skip legacy form endpoints such as /merge and /split")
+    parser.add_argument(
+        "--expect-legacy-removed",
+        action="store_true",
+        help="Also verify old standalone form endpoints return 404",
+    )
     parser.add_argument("--keep-jobs", action="store_true", help="Do not call /delete-job for generated jobs")
     parser.add_argument("--fail-fast", action="store_true", help="Stop on the first failed step")
     parser.add_argument("--debug", action="store_true", help="Print traceback on unexpected crash")
@@ -584,7 +614,7 @@ def main(argv: list[str]) -> int:
     runner = SmokeRunner(
         client,
         Path(args.pdf),
-        skip_legacy=args.skip_legacy,
+        expect_legacy_removed=args.expect_legacy_removed,
         keep_jobs=args.keep_jobs,
         fail_fast=args.fail_fast,
     )
