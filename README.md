@@ -28,6 +28,8 @@ Current edit operations include:
 * Insert blank pages
 * Insert PNG/JPEG/WebP images as PDF pages
 * Rotate selected pages
+* Delete selected pages
+* Move selected pages
 
 ## Run
 
@@ -98,6 +100,8 @@ Steps:
    * **Blank Page**
    * **Insert Image**
    * **Rotate Pages**
+   * **Delete Pages**
+   * **Move Pages**
 5. Configure the operation.
 6. Click the operation add button to add it to the edit queue.
 7. Click **Apply Edits**.
@@ -105,6 +109,48 @@ Steps:
 9. Click **Download PDF** to download the latest edited result.
 
 The Edit page is designed for iterative editing. After applying edits, the edited PDF becomes the new current preview target.
+
+## Smoke check
+
+APDF includes a lightweight endpoint smoke checker for verifying that the current URL, JSON, and multipart contracts still work after refactoring.
+
+Run APDF first:
+
+```bash
+docker compose up -d --build
+```
+
+Then run the checker with a small PDF file:
+
+```bash
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf test.pdf
+```
+
+The checker covers the current public workflow endpoints:
+
+```text
+GET    /
+GET    /assemble
+GET    /edit
+GET    /api/clients/{client_id}/sources
+POST   /api/clients/{client_id}/sources
+DELETE /api/clients/{client_id}/sources/{source_id}
+DELETE /api/clients/{client_id}/sources
+POST   /compose
+POST   /edit/apply
+GET    /job/{code}
+POST   /lookup
+GET    /download/{code}/{filename}
+POST   /delete-job/{code}
+```
+
+For `/edit/apply`, it checks blank-page insertion, image-page insertion, rotation, page deletion, page movement, and a combined edit queue.
+
+If legacy standalone endpoints have been removed, this optional check verifies they return `404`:
+
+```bash
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf test.pdf --expect-legacy-removed
+```
 
 ## Result codes
 

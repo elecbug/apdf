@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/2.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/3.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -304,6 +304,7 @@ class SmokeRunner:
         self.step("POST /edit/apply insert_image_page", self.check_edit_insert_image_page)
         self.step("POST /edit/apply rotate", self.check_edit_rotate)
         self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
+        self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
         self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
         if self.expect_legacy_removed:
@@ -459,18 +460,26 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
-    def check_edit_combined_queue(self) -> str:
+    def check_edit_move_pages(self) -> str:
         if self.page_count <= 1:
             return "skipped: input PDF has only one page"
 
+        result = self.apply_edit(
+            [{"type": "move_pages", "pages": "1", "position": "end"}],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
         operations = [
             {"type": "insert_blank", "position": "after", "page": 1, "size": "same"},
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
+            {"type": "move_pages", "pages": "1", "position": "end"},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]
-        # +1 blank, +1 image, -1 delete => net +1.
+        # +1 blank, +1 image, +0 move, +0 rotate, -1 delete => net +1.
         result = self.apply_edit(
             operations,
             files=[(image_id, "combo.png", PNG_MIME, SMOKE_PNG)],
