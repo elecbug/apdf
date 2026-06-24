@@ -18,6 +18,7 @@ export function getEditElements() {
     addImagePageOp: document.getElementById('addImagePageOp'),
     addRotateOp: document.getElementById('addRotateOp'),
     addDeletePagesOp: document.getElementById('addDeletePagesOp'),
+    addMovePagesOp: document.getElementById('addMovePagesOp'),
 
     editOpList: document.getElementById('editOpList'),
     clearEditOps: document.getElementById('clearEditOps'),

@@ -19,6 +19,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "insert_image_page",
     "rotate",
     "delete_pages",
+    "move_pages",
 }
 
 
@@ -48,6 +49,9 @@ def apply_edit_operations(
 
         elif op_type == "delete_pages":
             pages = _apply_delete_pages(pages, op)
+
+        elif op_type == "move_pages":
+            pages = _apply_move_pages(pages, op)
 
         else:
             raise ValueError(f"Unsupported edit operation at #{index}: {op_type}")
@@ -152,6 +156,74 @@ def _apply_delete_pages(
         page
         for index, page in enumerate(pages)
         if index not in delete_indexes
+    ]
+
+
+def _apply_move_pages(
+    pages: list[PageObject],
+    op: dict[str, Any],
+) -> list[PageObject]:
+    pages_expr = str(op.get("pages", "")).strip()
+    position = str(op.get("position", "after")).strip().lower()
+
+    if position not in {"before", "after", "end"}:
+        raise ValueError("Move position must be before, after, or end")
+
+    move_indexes = _parse_page_selection(pages_expr, len(pages))
+    move_index_set = set(move_indexes)
+
+    if not move_indexes:
+        raise ValueError("No pages selected to move")
+
+    moving_pages = [
+        page
+        for index, page in enumerate(pages)
+        if index in move_index_set
+    ]
+
+    remaining_pairs = [
+        (index, page)
+        for index, page in enumerate(pages)
+        if index not in move_index_set
+    ]
+
+    if position == "end":
+        insert_index = len(remaining_pairs)
+    else:
+        try:
+            target_page = int(op.get("target_page"))
+        except Exception as exc:
+            raise ValueError("target_page is required unless position is end") from exc
+
+        if target_page < 1 or target_page > len(pages):
+            raise ValueError(f"Move target page out of range: {target_page}")
+
+        target_index = target_page - 1
+
+        if target_index in move_index_set:
+            raise ValueError("Move target page cannot be one of the moved pages")
+
+        try:
+            target_remaining_index = next(
+                index
+                for index, (original_index, _page) in enumerate(remaining_pairs)
+                if original_index == target_index
+            )
+        except StopIteration as exc:
+            raise ValueError(f"Move target page not found: {target_page}") from exc
+
+        insert_index = (
+            target_remaining_index
+            if position == "before"
+            else target_remaining_index + 1
+        )
+
+    remaining_pages = [page for _index, page in remaining_pairs]
+
+    return [
+        *remaining_pages[:insert_index],
+        *moving_pages,
+        *remaining_pages[insert_index:],
     ]
 
 

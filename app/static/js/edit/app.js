@@ -1,5 +1,5 @@
-import { downloadFileObject, downloadFromUrl } from './download.js';
 import { getEditElements } from './dom.js';
+import { downloadFileObject, downloadFromUrl } from './download.js';
 import { renderEditOps } from './operations.js';
 import { createPdfPreview } from './pdf-preview.js';
 import { setActiveTool } from './tools.js';
@@ -173,6 +173,41 @@ export function createEditApp() {
     updateEditOps();
   }
 
+  function addMovePagesOperation() {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    const pages = document.getElementById('movePages').value.trim();
+    const position = document.getElementById('movePosition').value;
+    const targetPageInput = document.getElementById('moveTargetPage');
+
+    if (!pages) {
+      alert('Enter pages to move.');
+      return;
+    }
+
+    const op = {
+      type: 'move_pages',
+      pages,
+      position
+    };
+
+    if (position !== 'end') {
+      const targetPage = preview.parsePageInput(targetPageInput);
+
+      if (targetPage === null) {
+        alert('Enter a valid target page number.');
+        return;
+      }
+
+      op.target_page = targetPage;
+    }
+
+    editOps.push(op);
+    updateEditOps();
+  }
+
   function removeEditOperation(event) {
     const button = event.target.closest('button[data-index]');
 
@@ -313,6 +348,7 @@ export function createEditApp() {
     elements.addImagePageOp.addEventListener('click', addImagePageOperation);
     elements.addRotateOp.addEventListener('click', addRotateOperation);
     elements.addDeletePagesOp.addEventListener('click', addDeletePagesOperation);
+    elements.addMovePagesOp.addEventListener('click', addMovePagesOperation);
 
     elements.editOpList.addEventListener('click', removeEditOperation);
     elements.clearEditOps.addEventListener('click', clearOperations);

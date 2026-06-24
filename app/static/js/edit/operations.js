@@ -42,5 +42,13 @@ export function formatOperation(op) {
     return `pages ${op.pages}`;
   }
 
+  if (op.type === 'move_pages') {
+    if (op.position === 'end') {
+      return `pages ${op.pages} to end`;
+    }
+
+    return `pages ${op.pages} ${op.position} page ${op.target_page}`;
+  }
+
   return JSON.stringify(op);
 }

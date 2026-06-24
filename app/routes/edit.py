@@ -17,7 +17,13 @@ from app.utils.uploads import is_upload_file, save_upload
 router = APIRouter(tags=["edit"])
 
 
-SUPPORTED_EDIT_TYPES = {"insert_blank", "insert_image_page", "rotate", "delete_pages"}
+SUPPORTED_EDIT_TYPES = {
+    "insert_blank",
+    "insert_image_page",
+    "rotate",
+    "delete_pages",
+    "move_pages",
+}
 
 
 def sanitize_image_id(image_id: str) -> str:
