@@ -2,3 +2,4 @@ data/
 fonts/
 
 __pycache__/
+debug/
