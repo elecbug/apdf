@@ -1,0 +1,33 @@
+/* Toolbar */
+.toolbar {
+  display: grid;
+  grid-template-columns: auto 415px;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.upload-box {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.split-box {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: start;
+  gap: 8px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-line {
+  margin: 0;
+  font-size: 14px;
+}

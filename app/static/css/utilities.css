@@ -1,0 +1,25 @@
+/* Help */
+.help {
+  margin-top: 18px;
+}
+
+.help summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* Generic Helpers */
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 18px;
+}
+
+.width-full {
+  width: 100%;
+}

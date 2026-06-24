@@ -1,0 +1,18 @@
+/* Header */
+.hero {
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.hero h1 {
+  margin-bottom: 4px;
+  font-size: 38px;
+}
+
+.lookup {
+  display: flex;
+  gap: 8px;
+}

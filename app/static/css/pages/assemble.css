@@ -1,0 +1,219 @@
+/* Composer Layout */
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pane {
+  min-height: 0;
+}
+
+.source-pane,
+.assembly-pane {
+  height: var(--pane-height);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pane-head {
+  display: grid;
+  justify-content: space-between;
+  grid-template-columns: auto 415px;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.pane-head-auto {
+  display: grid;
+  justify-content: space-between;
+  grid-template-columns: auto auto;
+  align-items: flex-start;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Source Table */
+.source-pane .table-wrap {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  overflow: auto;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table-wrap th,
+.table-wrap td {
+  padding: 14px 10px;
+  vertical-align: middle;
+}
+
+.source-pane thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--panel);
+}
+
+/* PDF name */
+.table-wrap th:nth-child(1),
+.table-wrap td:nth-child(1) {
+  text-align: left;
+  width: 50%;
+}
+
+/* Pages */
+.table-wrap th:nth-child(2),
+.table-wrap td:nth-child(2) {
+  width: 8%;
+}
+
+.table-wrap td:nth-child(2) {
+  text-align: right;
+  font-weight: 700;
+}
+
+/* First / Last */
+.table-wrap th:nth-child(3),
+.table-wrap th:nth-child(4),
+.table-wrap td:nth-child(3),
+.table-wrap td:nth-child(4) {
+  width: 10%;
+  text-align: center;
+}
+
+/* Actions */
+.table-wrap th:nth-child(5),
+.table-wrap td:nth-child(5) {
+  width: 22%;
+}
+
+.filename {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.page-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  text-align: right;
+}
+
+.empty td {
+  color: var(--muted);
+  text-align: center;
+  padding: 40px 8px;
+}
+
+/* Source Action Buttons */
+.source-actions {
+  white-space: nowrap;
+}
+
+.source-actions button {
+  width: calc(50% - 4px);
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  font-weight: 700;
+}
+
+.source-actions button + button {
+  margin-left: 6px;
+}
+
+.source-actions .add-btn {
+  background: var(--accent-alt);
+  color: var(--white);
+  border-color: var(--accent-alt);
+}
+
+.source-actions .add-btn:hover {
+  background: var(--accent-dark);
+}
+
+.source-actions .remove-source {
+  background: var(--danger);
+  color: var(--white);
+  border-color: var(--danger);
+}
+
+.source-actions .remove-source:hover {
+  background: var(--danger-dark);
+}
+
+/* Assembly */
+.assembly-list {
+  list-style: none;
+  padding: 0 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.assembly-list:empty::before {
+  content: "No ranges added yet.";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  text-align: center;
+  height: 100%;
+  min-height: 260px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.assembly-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-soft);
+}
+
+.assembly-list code {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  padding: 2px 6px;
+  border-radius: 7px;
+}
+
+.item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.item-actions button {
+  padding: 6px 8px;
+  font-size: 13px;
+}

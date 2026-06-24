@@ -1,0 +1,35 @@
+:root {
+  /* Colors */
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --panel-soft: #fbfcfe;
+  --secondary-bg: #f7f8fb;
+
+  --text: #20242a;
+  --muted: #687080;
+  --line: #dfe3ea;
+
+  --accent: #2d63c8;
+  --accent-alt: #3165c9;
+  --accent-dark: #204a99;
+  --accent-soft: #eef3ff;
+  --accent-text: #183b7a;
+
+  --danger: #b42318;
+  --danger-dark: #63140f;
+
+  --white: #ffffff;
+
+  /* Shape */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  /* Layout */
+  --main-width: 1280px;
+  --pane-height: 520px;
+
+  /* Effects */
+  --shadow-card: 0 8px 24px rgba(20, 30, 50, 0.04);
+}

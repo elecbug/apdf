@@ -1,0 +1,43 @@
+/* Buttons */
+button {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  padding: 9px 13px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+button.primary:hover {
+  background: var(--accent-dark);
+}
+
+button.warning {
+  background: var(--danger);
+  color: var(--white);
+  border-color: var(--danger);
+}
+
+button.warning:hover {
+  background: var(--danger-dark);
+}
+
+button.secondary {
+  background: var(--secondary-bg);
+}

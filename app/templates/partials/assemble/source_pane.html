@@ -1,0 +1,37 @@
+<div class="card pane source-pane">
+  <div class="pane-head">
+    <div>
+      <h2>Sources</h2>
+      <p>Set a page range, then press Add.</p>
+    </div>
+    <div class="upload-box">
+      <div class="split-box">
+        <div class="file-picker">
+          <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
+          <label for="pdfFiles" class="button-like primary file-button">Add PDFs to Sources</label>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" id="clearSources" class="warning width-full">Clear Sources</button>
+        </div>
+      </div>
+      <p id="statusLine" class="status-line">Ready.</p>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PDF name</th>
+          <th>Pages</th>
+          <th>First</th>
+          <th>Last</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="sourceRows">
+        <tr class="empty"><td colspan="5">No PDFs loaded.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>

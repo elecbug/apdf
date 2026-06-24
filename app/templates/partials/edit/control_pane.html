@@ -1,0 +1,37 @@
+<div class="card edit-control-pane">
+  <div class="pane-head-auto">
+    <div>
+      <h2>Operations</h2>
+      <p>Select an operation, configure it, then add it to the queue.</p>
+    </div>
+  </div>
+
+  <div class="edit-tool-tabs">
+    <button type="button" class="edit-tool-button active" data-tool="blank">Blank Page</button>
+    <button type="button" class="edit-tool-button" data-tool="image">Insert Image</button>
+    <button type="button" class="edit-tool-button" data-tool="rotate">Rotate Pages</button>
+    <button type="button" class="edit-tool-button" data-tool="delete">Delete Pages</button>
+  </div>
+
+  <div class="edit-tool-panel">
+    {% include "partials/edit/tools/blank.html" %}
+    {% include "partials/edit/tools/image.html" %}
+    {% include "partials/edit/tools/rotate.html" %}
+    {% include "partials/edit/tools/delete.html" %}
+  </div>
+
+  <div class="edit-queue-head">
+    <div>
+      <h2>Edit Queue</h2>
+      <p>Operations will be applied in this order.</p>
+    </div>
+    <button type="button" id="clearEditOps" class="warning">Clear</button>
+  </div>
+
+  <ol id="editOpList" class="edit-op-list"></ol>
+
+  <div class="edit-action-row">
+    <button type="button" id="applyEditOps" class="primary">Apply Edits</button>
+    <button type="button" id="downloadEditedPdf" class="secondary" disabled>Download PDF</button>
+  </div>
+</div>

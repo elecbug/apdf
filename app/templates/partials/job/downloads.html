@@ -1,0 +1,20 @@
+{% if job.outputs %}
+  <section class="download-section">
+    <h2>Downloads</h2>
+
+    <ul class="download-list">
+      {% for file in job.outputs %}
+        <li>
+          <span>{{ file }}</span>
+          <a class="button-link primary" href="/download/{{ job.code }}/{{ file }}">
+            Download
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+{% else %}
+  <div class="empty-box">
+    No downloadable output is available.
+  </div>
+{% endif %}

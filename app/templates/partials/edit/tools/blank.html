@@ -1,0 +1,29 @@
+<section id="toolPanelBlank" class="tool-panel active">
+  <h3>Insert Blank Page</h3>
+  <p>Add an empty page before or after a specific page.</p>
+
+  <label>
+    Position
+    <select id="blankPosition">
+      <option value="after">After page</option>
+      <option value="before">Before page</option>
+      <option value="end">At the end</option>
+    </select>
+  </label>
+
+  <label>
+    Page
+    <input id="blankPageNumber" type="number" min="1" value="1">
+  </label>
+
+  <label>
+    Size
+    <select id="blankPageSize">
+      <option value="same">Same as target page</option>
+      <option value="a4">A4</option>
+      <option value="letter">Letter</option>
+    </select>
+  </label>
+
+  <button type="button" id="addBlankPageOp" class="primary width-full">Add Blank Page</button>
+</section>

@@ -6,70 +6,13 @@
 
 {% block content %}
 <section class="composer">
-  <div class="card pane source-pane">
-    <div class="pane-head">
-      <div>
-        <h2>Sources</h2>
-        <p>Set a page range, then press Add.</p>
-      </div>
-      <div class="upload-box">
-        <div class="split-box">
-          <div class="file-picker">
-            <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
-            <label for="pdfFiles" class="button-like primary file-button">Add PDFs to Sources</label>
-          </div>
-          <div class="toolbar-actions">
-            <button type="button" id="clearSources" class="warning width-full">Clear Sources</button>
-          </div>
-        </div>
-        <p id="statusLine" class="status-line">Ready.</p>
-      </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>PDF name</th>
-            <th>Pages</th>
-            <th>First</th>
-            <th>Last</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="sourceRows">
-          <tr class="empty"><td colspan="5">No PDFs loaded.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card pane assembly-pane">
-    <div class="pane-head">
-      <div>
-        <h2>Result</h2>
-        <p>Segments are exported in this order.</p>
-      </div>
-      <button type="button" class="warning width-full" id="clearAssembly">Clear</button>
-    </div>
-
-    <ol id="assemblyList" class="assembly-list"></ol>
-    <button type="button" id="buildButton" class="primary width-full">Build PDF</button>
-  </div>
+  {% include "partials/assemble/source_pane.html" %}
+  {% include "partials/assemble/assembly_pane.html" %}
 </section>
 
-<details class="card help">
-  <summary>Notes</summary>
-  <ul>
-    <li>Page numbers are 1-based.</li>
-    <li>The source cache is bound to this browser through localStorage client_id.</li>
-    <li>Browsers cannot repopulate file inputs after Back/reload, so APDF restores the server-side source cache instead.</li>
-    <li>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</li>
-    <li>The backend validates all source_id and page ranges during export.</li>
-  </ul>
-</details>
+{% include "partials/assemble/notes.html" %}
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/assemble.js?v=4" defer></script>
+<script type="module" src="/static/assemble.js?v=5"></script>
 {% endblock %}

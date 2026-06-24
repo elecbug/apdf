@@ -1,0 +1,214 @@
+/* Responsive */
+@media (max-width: 900px) {
+  main {
+    padding: 16px;
+  }
+
+  .hero,
+  .toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .composer {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lookup {
+    width: 100%;
+  }
+
+  .lookup input {
+    flex: 1;
+  }
+
+  .split-box {
+    grid-auto-flow: row;
+  }
+
+  .source-pane,
+  .assembly-pane {
+    height: 480px;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .edit-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .edit-upload-box {
+    width: 100%;
+  }
+
+  .edit-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-preview-pane,
+  .edit-control-pane {
+    height: auto;
+    min-height: 520px;
+  }
+
+  .edit-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .pdf-preview-box {
+    margin-top: 16px;
+    margin-bottom: 16px;
+    min-height: 420px;
+  }
+
+  .preview-controls {
+    width: 100%;
+  }
+
+  .preview-controls button {
+    flex: 1;
+  }
+
+  .preview-controls input {
+    flex: 0 0 80px;
+  }
+
+  .edit-queue-head {
+    flex-direction: column;
+  }
+
+  .edit-queue-head button {
+    width: 100%;
+  }
+
+  .main-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .main-tab {
+    width: 100%;
+  }
+
+  .result-head {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .download-list li {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-list .button-link {
+    width: 100%;
+  }
+
+  .pane-head {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .source-pane .table-wrap {
+    overflow-x: hidden;
+  }
+
+  .source-pane table,
+  .source-pane tbody,
+  .source-pane tr,
+  .source-pane td {
+    display: block;
+  }
+
+  .source-pane thead {
+    display: none;
+  }
+
+  .source-pane tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .source-pane tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 52px 76px 76px;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--panel-soft);
+  }
+
+  .source-pane tbody tr.empty {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .source-pane tbody td {
+    width: auto !important;
+    padding: 0;
+    text-align: left;
+    height: 100%;
+  }
+
+  .source-pane tbody td:nth-child(1) {
+    grid-column: 1;
+    align-content: center;
+  }
+
+  .source-pane tbody td:nth-child(2) {
+    grid-column: 2;
+    text-align: right;
+    align-self: end;
+    align-content: center;
+  }
+
+  .source-pane tbody td:nth-child(3) {
+    grid-column: 3;
+  }
+
+  .source-pane tbody td:nth-child(4) {
+    grid-column: 4;
+  }
+
+  .source-pane tbody td:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .source-pane .filename {
+    min-width: 0;
+    align-self: end;
+  }
+
+  .source-pane tbody td.source-actions {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    width: 100% !important;
+    white-space: normal;
+  }
+
+  .source-pane tbody td.source-actions button {
+    width: 100% !important;
+    min-width: 0;
+    margin: 0 !important;
+    font-size: 14px;
+  }
+
+  .source-pane tbody td.source-actions button + button {
+    margin-left: 0 !important;
+  }
+
+  .assembly-list:empty::before {
+    min-height: 100px;
+  }
+}

@@ -1,0 +1,31 @@
+/* Main Tabs */
+.main-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.main-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  min-width: 130px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--secondary-bg);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.main-tab:hover {
+  border-color: var(--accent);
+}
+
+.main-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--white);
+}

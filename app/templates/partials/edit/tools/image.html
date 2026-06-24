@@ -1,0 +1,47 @@
+<section id="toolPanelImage" class="tool-panel">
+  <h3>Insert Image as Page</h3>
+  <p>Insert a PNG/JPEG/WebP image as a new PDF page.</p>
+
+  <div class="tool-field">
+    <span>Image file</span>
+
+    <div class="file-picker">
+      <input
+        id="insertImageFile"
+        class="file-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+      >
+      <label for="insertImageFile" class="file-button file-button-secondary">
+        Choose Image
+      </label>
+    </div>
+
+    <p id="insertImageName" class="inline-file-name">No image selected.</p>
+  </div>
+
+  <label>
+    Position
+    <select id="imagePosition">
+      <option value="after">After page</option>
+      <option value="before">Before page</option>
+      <option value="end">At the end</option>
+    </select>
+  </label>
+
+  <label>
+    Page
+    <input id="imagePageNumber" type="number" min="1" value="1">
+  </label>
+
+  <label>
+    Fit mode
+    <select id="imageFitMode">
+      <option value="fit">Fit inside page</option>
+      <option value="fill">Fill page</option>
+      <option value="original">Original size</option>
+    </select>
+  </label>
+
+  <button type="button" id="addImagePageOp" class="primary width-full">Add Image Page</button>
+</section>

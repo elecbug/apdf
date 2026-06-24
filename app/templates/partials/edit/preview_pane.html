@@ -1,0 +1,20 @@
+<div class="card edit-preview-pane">
+  <div class="pane-head-auto">
+    <div>
+      <h2>Preview</h2>
+      <p id="previewInfo">Select a PDF to preview.</p>
+    </div>
+
+    <div class="preview-controls">
+      <button type="button" id="prevPageButton" class="secondary">Prev</button>
+      <input id="previewPageInput" type="number" min="1" value="1">
+      <span id="previewPageCount">/ 0</span>
+      <button type="button" id="nextPageButton" class="secondary">Next</button>
+    </div>
+  </div>
+
+  <div id="pdfPreviewBox" class="pdf-preview-box">
+    <div class="empty-box">No PDF loaded.</div>
+    <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+  </div>
+</div>

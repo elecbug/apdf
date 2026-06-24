@@ -1,0 +1,45 @@
+/* File Picker */
+.file-picker {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 41.2px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  background: var(--accent-alt);
+  color: var(--white);
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.file-button:hover {
+  filter: brightness(0.95);
+}
+
+.file-input:disabled + .file-button {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.file-name {
+  color: var(--muted);
+  font-weight: 600;
+}

@@ -1,0 +1,17 @@
+<div class="result-head">
+  <div>
+    <h2>Result</h2>
+    <p>Code: <strong class="code">{{ job.code }}</strong></p>
+  </div>
+
+  <div class="split-box">
+    <div>
+      <a class="button-link secondary width-full" href="/assemble">Back to Assemble</a>
+    </div>
+    <div>
+      <form action="/delete-job/{{ job.code }}" method="post">
+        <button type="submit" class="warning width-full">Delete Now</button>
+      </form>
+    </div>
+  </div>
+</div>

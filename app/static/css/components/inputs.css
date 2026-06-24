@@ -1,0 +1,22 @@
+/* Inputs */
+input,
+textarea,
+select {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--white);
+  min-width: 0;
+}
+
+input.primary {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+input.primary:hover {
+  background: var(--accent-dark);
+}
