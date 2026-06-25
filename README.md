@@ -123,7 +123,7 @@ docker compose up -d --build
 Then run the checker with a small PDF file:
 
 ```bash
-python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf test.pdf
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf
 ```
 
 The checker covers the current public workflow endpoints:
@@ -149,7 +149,7 @@ For `/edit/apply`, it checks blank-page insertion, image-page insertion, rotatio
 If legacy standalone endpoints have been removed, this optional check verifies they return `404`:
 
 ```bash
-python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf test.pdf --expect-legacy-removed
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed
 ```
 
 ## Result codes
