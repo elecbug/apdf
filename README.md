@@ -19,8 +19,10 @@ APDF currently provides two main workflows:
 
   * Load a PDF file in the Edit page.
   * Preview the PDF in the browser.
+  * Inspect PDF point coordinates by moving the pointer over the preview.
   * Queue edit operations.
   * Apply edits and continue previewing the edited result.
+  * Undo the last applied edit batch while the page remains open.
   * Download the edited PDF directly.
 
 Current edit operations include:
@@ -30,6 +32,7 @@ Current edit operations include:
 * Rotate selected pages
 * Delete selected pages
 * Move selected pages
+* Undo the last applied edit batch
 
 ## Run
 
@@ -95,20 +98,22 @@ Steps:
 1. Click **Choose PDF to Edit**.
 2. Select a PDF file.
 3. Preview the PDF in the left panel.
-4. Choose an operation in the right panel:
+4. Move the pointer over the preview to inspect PDF coordinates. Click the preview to pin the current coordinate until the pointer leaves the preview.
+5. Choose an operation in the right panel:
 
    * **Blank Page**
    * **Insert Image**
    * **Rotate Pages**
    * **Delete Pages**
    * **Move Pages**
-5. Configure the operation.
-6. Click the operation add button to add it to the edit queue.
-7. Click **Apply Edits**.
-8. The preview updates to the edited PDF.
-9. Click **Download PDF** to download the latest edited result.
+6. Configure the operation.
+7. Click the operation add button to add it to the edit queue.
+8. Click **Apply Edits**.
+9. The preview updates to the edited PDF.
+10. Click **Undo** to restore the previous preview state if needed.
+11. Click **Download PDF** to download the latest edited result.
 
-The Edit page is designed for iterative editing. After applying edits, the edited PDF becomes the new current preview target.
+The Edit page is designed for iterative editing. After applying edits, the edited PDF becomes the new current preview target. Undo history is browser-memory state and is reset when a new PDF is loaded or the page is refreshed.
 
 ## Smoke check
 

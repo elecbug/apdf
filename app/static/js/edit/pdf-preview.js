@@ -70,14 +70,27 @@ function getPreviewBoxHorizontalPadding(previewBox) {
   return left + right;
 }
 
+function formatCoordinateNumber(value) {
+  return Number.isFinite(value) ? value.toFixed(1) : '-';
+}
+
+function formatCoordinateLine(coordinate, label) {
+  return `${label}: page ${coordinate.page}, x ${formatCoordinateNumber(coordinate.x)} pt, y ${formatCoordinateNumber(coordinate.y)} pt · origin: bottom-left`;
+}
+
 export function createPdfPreview(elements, setEditStatus) {
   let targetPdfFile = null;
   let targetPdfDocument = null;
   let currentPageNumber = 1;
   let zoomValue = loadSavedZoom();
   let lastRenderScale = Number.parseFloat(DEFAULT_ZOOM);
+  let currentViewport = null;
+  let coordinateLocked = false;
+  let lastCoordinate = null;
 
   syncZoomControl();
+  bindCoordinateEvents();
+  resetCoordinateLine('Coordinates: load a PDF to inspect page coordinates.');
 
   async function loadPdfFromFile(file) {
     const data = await file.arrayBuffer();
@@ -110,6 +123,7 @@ export function createPdfPreview(elements, setEditStatus) {
     const viewport = page.getViewport({ scale: renderScale });
 
     lastRenderScale = renderScale;
+    currentViewport = viewport;
 
     const context = elements.pdfCanvas.getContext('2d');
     elements.pdfCanvas.width = Math.floor(viewport.width);
@@ -128,6 +142,107 @@ export function createPdfPreview(elements, setEditStatus) {
     }).promise;
 
     elements.previewPageInput.value = String(currentPageNumber);
+    resetCoordinateLine('Coordinates: move pointer over the PDF to inspect page coordinates.');
+  }
+
+  function resetCoordinateLine(message) {
+    coordinateLocked = false;
+    lastCoordinate = null;
+
+    if (!elements.previewCoordinateLine) {
+      return;
+    }
+
+    elements.previewCoordinateLine.textContent = message;
+    elements.previewCoordinateLine.classList.remove('locked');
+  }
+
+  function setCoordinateLine(coordinate, label, locked = false) {
+    if (!elements.previewCoordinateLine) {
+      return;
+    }
+
+    elements.previewCoordinateLine.textContent = formatCoordinateLine(coordinate, label);
+    elements.previewCoordinateLine.classList.toggle('locked', locked);
+  }
+
+  function coordinateFromPointerEvent(event) {
+    if (!currentViewport || !targetPdfDocument) {
+      return null;
+    }
+
+    const canvas = elements.pdfCanvas;
+    const rect = canvas.getBoundingClientRect();
+
+    if (rect.width <= 0 || rect.height <= 0 || canvas.width <= 0 || canvas.height <= 0) {
+      return null;
+    }
+
+    const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (canvasX < 0 || canvasY < 0 || canvasX > canvas.width || canvasY > canvas.height) {
+      return null;
+    }
+
+    const [pdfX, pdfY] = currentViewport.convertToPdfPoint(canvasX, canvasY);
+
+    return {
+      page: currentPageNumber,
+      x: pdfX,
+      y: pdfY
+    };
+  }
+
+  function handlePointerMove(event) {
+    if (coordinateLocked) {
+      return;
+    }
+
+    const coordinate = coordinateFromPointerEvent(event);
+
+    if (!coordinate) {
+      return;
+    }
+
+    lastCoordinate = coordinate;
+    setCoordinateLine(coordinate, 'Pointer');
+  }
+
+  function handlePointerClick(event) {
+    const coordinate = coordinateFromPointerEvent(event);
+
+    if (!coordinate) {
+      return;
+    }
+
+    coordinateLocked = true;
+    lastCoordinate = coordinate;
+    setCoordinateLine(coordinate, 'Pinned', true);
+  }
+
+  function handlePointerLeave() {
+    if (coordinateLocked && lastCoordinate) {
+      coordinateLocked = false;
+      setCoordinateLine(lastCoordinate, 'Last');
+      return;
+    }
+
+    if (targetPdfDocument) {
+      resetCoordinateLine('Coordinates: move pointer over the PDF to inspect page coordinates.');
+    } else {
+      resetCoordinateLine('Coordinates: load a PDF to inspect page coordinates.');
+    }
+  }
+
+  function bindCoordinateEvents() {
+    if (!elements.pdfCanvas) {
+      return;
+    }
+
+    elements.pdfCanvas.addEventListener('pointermove', handlePointerMove);
+    elements.pdfCanvas.addEventListener('click', handlePointerClick);
+    elements.pdfCanvas.addEventListener('pointerleave', handlePointerLeave);
   }
 
   function resolveRenderScale(page) {

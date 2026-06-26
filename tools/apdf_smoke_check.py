@@ -340,6 +340,7 @@ class SmokeRunner:
             "editPdfFile",
             "pdfPreviewBox",
             "pdfCanvas",
+            "previewCoordinateLine",
             "prevPageButton",
             "previewPageInput",
             "previewPageCount",

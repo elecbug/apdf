@@ -5,7 +5,7 @@ This smoke checker targets the current APDF routing model after the Python split
 It verifies:
 
 - Core HTML pages
-- Edit page UI control IDs, including Preview Zoom and Undo controls
+- Edit page UI control IDs, including Preview Zoom, coordinate inspector, and Undo controls
 - Browser-session source cache APIs
 - `/compose`
 - `/edit/apply` operations:
@@ -39,4 +39,4 @@ To also verify that legacy endpoints are removed:
 python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed
 ```
 
-Preview Zoom and Undo are frontend-only features. The checker therefore verifies that the Edit page exposes the expected control IDs rather than sending a backend request.
+Preview Zoom, the coordinate inspector, and Undo are frontend-only features. The checker therefore verifies that the Edit page exposes the expected control IDs rather than sending a backend request.

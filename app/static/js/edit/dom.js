@@ -6,6 +6,7 @@ export function getEditElements() {
     previewInfo: document.getElementById('previewInfo'),
     pdfPreviewBox: document.getElementById('pdfPreviewBox'),
     pdfCanvas: document.getElementById('pdfCanvas'),
+    previewCoordinateLine: document.getElementById('previewCoordinateLine'),
     prevPageButton: document.getElementById('prevPageButton'),
     nextPageButton: document.getElementById('nextPageButton'),
     previewPageInput: document.getElementById('previewPageInput'),

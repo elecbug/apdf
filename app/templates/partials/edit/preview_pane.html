@@ -14,7 +14,7 @@
       </div>
 
       <div class="preview-zoom-controls" aria-label="Preview zoom controls">
-        <button type="button" id="zoomOutButton" class="secondary" aria-label="Zoom out">−</button>
+        <button type="button" id="zoomOutButton" class="secondary" aria-label="Zoom out">-</button>
         <select id="previewZoomSelect" aria-label="Preview zoom">
           <option value="fit-width">Fit width</option>
           <option value="0.5">50%</option>
@@ -35,5 +35,13 @@
   <div id="pdfPreviewBox" class="pdf-preview-box">
     <div class="empty-box">No PDF loaded.</div>
     <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+  </div>
+
+  <div
+    id="previewCoordinateLine"
+    class="preview-coordinate-line"
+    aria-live="polite"
+  >
+    Coordinates: load a PDF to inspect page coordinates.
   </div>
 </div>
