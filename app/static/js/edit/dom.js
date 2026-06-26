@@ -25,6 +25,7 @@ export function getEditElements() {
 
     editOpList: document.getElementById('editOpList'),
     clearEditOps: document.getElementById('clearEditOps'),
+    undoEditApply: document.getElementById('undoEditApply'),
     applyEditOps: document.getElementById('applyEditOps'),
     downloadEditedPdf: document.getElementById('downloadEditedPdf'),
 

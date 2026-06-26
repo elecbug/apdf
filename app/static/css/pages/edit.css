@@ -36,13 +36,34 @@
 .preview-controls {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.preview-page-controls,
+.preview-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .preview-controls input {
   width: 78px;
   text-align: right;
+}
+
+.preview-zoom-controls select {
+  width: 112px;
+  height: 40px;
+  padding: 0 10px;
+}
+
+.preview-zoom-controls button {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
 }
 
 .pdf-preview-box {
@@ -60,7 +81,8 @@
 
 .pdf-canvas {
   display: none;
-  max-width: 100%;
+  width: auto;
+  max-width: none;
   height: auto;
   background: var(--white);
   box-shadow: var(--shadow-card);
@@ -195,7 +217,7 @@
 
 .edit-action-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 0.8fr 1fr 1fr;
   gap: 8px;
 
   padding-top: 12px;

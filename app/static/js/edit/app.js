@@ -4,6 +4,8 @@ import { renderEditOps } from './operations.js';
 import { createPdfPreview } from './pdf-preview.js';
 import { setActiveTool } from './tools.js';
 
+const MAX_UNDO_HISTORY = 20;
+
 export function createEditApp() {
   const elements = getEditElements();
 
@@ -11,6 +13,7 @@ export function createEditApp() {
   let latestDownloadFilename = null;
   let editOps = [];
   let insertedImages = [];
+  let undoStack = [];
 
   function setEditStatus(message) {
     elements.editStatusLine.textContent = message;
@@ -20,6 +23,43 @@ export function createEditApp() {
 
   function updateEditOps() {
     renderEditOps(elements.editOpList, editOps);
+  }
+
+  function updateUndoButton() {
+    elements.undoEditApply.disabled = undoStack.length === 0;
+  }
+
+  function makeUndoSnapshot() {
+    const targetPdfFile = preview.getTargetPdfFile();
+
+    if (!targetPdfFile) {
+      return null;
+    }
+
+    return {
+      file: targetPdfFile,
+      downloadUrl: latestDownloadUrl,
+      downloadFilename: latestDownloadFilename
+    };
+  }
+
+  function pushUndoSnapshot(snapshot) {
+    if (!snapshot) {
+      return;
+    }
+
+    undoStack.push(snapshot);
+
+    if (undoStack.length > MAX_UNDO_HISTORY) {
+      undoStack.shift();
+    }
+
+    updateUndoButton();
+  }
+
+  function clearUndoHistory() {
+    undoStack = [];
+    updateUndoButton();
   }
 
   async function handlePdfFileChange() {
@@ -42,6 +82,10 @@ export function createEditApp() {
       latestDownloadUrl = null;
       latestDownloadFilename = null;
       elements.downloadEditedPdf.disabled = true;
+      editOps = [];
+      insertedImages = [];
+      updateEditOps();
+      clearUndoHistory();
     } catch (error) {
       console.error(error);
       alert(`Failed to load PDF.\n\n${error?.message || error}`);
@@ -245,8 +289,11 @@ export function createEditApp() {
       formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
     });
 
+    const undoSnapshot = makeUndoSnapshot();
+
     try {
       elements.applyEditOps.disabled = true;
+      elements.undoEditApply.disabled = true;
       elements.downloadEditedPdf.disabled = true;
       elements.applyEditOps.textContent = 'Applying...';
       setEditStatus('Applying edits...');
@@ -288,6 +335,7 @@ export function createEditApp() {
       );
 
       await preview.loadPdfFromFile(editedFile);
+      pushUndoSnapshot(undoSnapshot);
 
       editOps = [];
       insertedImages = [];
@@ -305,6 +353,42 @@ export function createEditApp() {
     } finally {
       elements.applyEditOps.disabled = false;
       elements.applyEditOps.textContent = 'Apply Edits';
+      elements.downloadEditedPdf.disabled = !latestDownloadUrl;
+      updateUndoButton();
+    }
+  }
+
+  async function undoLastApply() {
+    if (undoStack.length === 0) {
+      return;
+    }
+
+    const snapshot = undoStack.pop();
+
+    try {
+      elements.undoEditApply.disabled = true;
+      elements.applyEditOps.disabled = true;
+      setEditStatus('Restoring previous preview...');
+
+      await preview.loadPdfFromFile(snapshot.file);
+
+      latestDownloadUrl = snapshot.downloadUrl;
+      latestDownloadFilename = snapshot.downloadFilename;
+      elements.downloadEditedPdf.disabled = !latestDownloadUrl;
+
+      editOps = [];
+      insertedImages = [];
+      updateEditOps();
+
+      setEditStatus(`Undone. Current preview: ${snapshot.file.name}`);
+    } catch (error) {
+      undoStack.push(snapshot);
+      console.error(error);
+      alert(`Failed to undo.\n\n${error?.message || error}`);
+      setEditStatus(`Failed to undo: ${error?.message || error}`);
+    } finally {
+      elements.applyEditOps.disabled = false;
+      updateUndoButton();
     }
   }
 
@@ -357,6 +441,7 @@ export function createEditApp() {
 
     elements.editOpList.addEventListener('click', removeEditOperation);
     elements.clearEditOps.addEventListener('click', clearOperations);
+    elements.undoEditApply.addEventListener('click', undoLastApply);
     elements.applyEditOps.addEventListener('click', applyOperations);
     elements.downloadEditedPdf.addEventListener('click', downloadEditedPdf);
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
@@ -366,6 +451,7 @@ export function createEditApp() {
     bindEvents();
     setActiveTool(elements, 'blank');
     updateEditOps();
+    updateUndoButton();
   }
 
   return { init };

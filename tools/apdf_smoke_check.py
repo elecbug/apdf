@@ -352,6 +352,7 @@ class SmokeRunner:
             "addRotateOp",
             "addDeletePagesOp",
             "addMovePagesOp",
+            "undoEditApply",
             "applyEditOps",
             "downloadEditedPdf",
         ]
