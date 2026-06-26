@@ -16,7 +16,7 @@ It verifies:
   - `move_pages`
   - `overlay_text`
   - `overlay_image`
-  - combined operation queue
+  - combined operation list
 - Job result page
 - PDF download endpoint
 - Optional removal of legacy standalone endpoints
@@ -41,4 +41,4 @@ To also verify that legacy endpoints are removed:
 python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed
 ```
 
-Preview Zoom, the coordinate inspector, and Undo are frontend-only features. Text and image overlays are tested through `/edit/apply`; automatic coordinate filling is verified by checking the Edit page control IDs. The checker therefore verifies that the Edit page exposes the expected control IDs as well as backend edit contracts.
+Preview Zoom, the coordinate inspector, and Undo are frontend-only features. The current Edit UI applies one operation immediately from the selected tool detail panel, while `/edit/apply` still accepts an operation list. Text and image overlays are tested through `/edit/apply`; automatic coordinate filling is verified by checking the Edit page control IDs. The checker therefore verifies that the Edit page exposes the expected control IDs as well as backend edit contracts.

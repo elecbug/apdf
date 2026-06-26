@@ -48,10 +48,7 @@ export function getEditElements() {
     imageOverlayLockRatio: document.getElementById('imageOverlayLockRatio'),
     imageOverlayOpacity: document.getElementById('imageOverlayOpacity'),
 
-    editOpList: document.getElementById('editOpList'),
-    clearEditOps: document.getElementById('clearEditOps'),
     undoEditApply: document.getElementById('undoEditApply'),
-    applyEditOps: document.getElementById('applyEditOps'),
     downloadEditedPdf: document.getElementById('downloadEditedPdf'),
 
     insertImageFile: document.getElementById('insertImageFile'),

@@ -62,28 +62,21 @@
     gap: 18px;
   }
 
-  .edit-tool-detail-pane,
-  .edit-queue-pane {
+  .edit-tool-detail-pane {
     overflow: visible;
   }
 
-  .edit-op-list {
-    min-height: 140px;
-    max-height: 240px;
+  .edit-tool-panel {
+    overflow: visible;
   }
 
-  .edit-action-row {
+  .edit-detail-actions {
     grid-template-columns: 1fr;
   }
 
-  .edit-tool-tabs {
+  .edit-tool-grid {
     display: flex;
     overflow-x: auto;
-  }
-
-  .edit-tool-button:hover::after,
-  .edit-tool-button:focus-visible::after {
-    display: none;
   }
 
   .coordinate-fields {
@@ -106,14 +99,6 @@
 
   .preview-controls input {
     flex: 0 0 80px;
-  }
-
-  .edit-queue-head {
-    flex-direction: column;
-  }
-
-  .edit-queue-head button {
-    width: 100%;
   }
 
   .main-tabs {

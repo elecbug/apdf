@@ -9,7 +9,7 @@
       </div>
     </div>
 
-    <div class="edit-tool-tabs" role="tablist" aria-label="PDF edit tools">
+    <div class="edit-tool-grid" role="tablist" aria-label="PDF edit tools">
       <button
         type="button"
         class="edit-tool-button active"
@@ -115,23 +115,10 @@
       {% include "partials/edit/tools/text.html" %}
       {% include "partials/edit/tools/image_overlay.html" %}
     </div>
-  </section>
 
-  <section class="card edit-queue-pane" aria-labelledby="editQueueTitle">
-    <div class="edit-queue-head">
-      <div>
-        <h2 id="editQueueTitle">Edit Queue</h2>
-        <p>Operations will be applied in this order.</p>
-      </div>
-      <button type="button" id="clearEditOps" class="warning">Clear</button>
-    </div>
-
-    <ol id="editOpList" class="edit-op-list"></ol>
-
-    <div class="edit-action-row">
+    <div class="edit-detail-actions" aria-label="Edit result actions">
       <button type="button" id="undoEditApply" class="secondary" disabled>Undo</button>
-      <button type="button" id="applyEditOps" class="primary">Apply</button>
-      <button type="button" id="downloadEditedPdf" class="secondary" disabled>Download</button>
+      <button type="button" id="downloadEditedPdf" class="secondary" disabled>Download PDF</button>
     </div>
   </section>
 </div>

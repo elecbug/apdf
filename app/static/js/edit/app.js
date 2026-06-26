@@ -1,6 +1,5 @@
 import { downloadFileObject, downloadFromUrl } from './download.js';
 import { getEditElements } from './dom.js';
-import { renderEditOps } from './operations.js';
 import { createPdfPreview } from './pdf-preview.js';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 
@@ -11,12 +10,12 @@ export function createEditApp() {
 
   let latestDownloadUrl = null;
   let latestDownloadFilename = null;
-  let editOps = [];
-  let insertedImages = [];
   let undoStack = [];
   let currentTool = 'blank';
   let imageOverlayRatio = null;
   let syncingImageOverlaySize = false;
+  let imageSequence = 0;
+  let applying = false;
 
   function setEditStatus(message) {
     elements.editStatusLine.textContent = message;
@@ -24,12 +23,30 @@ export function createEditApp() {
 
   const preview = createPdfPreview(elements, setEditStatus);
 
-  function updateEditOps() {
-    renderEditOps(elements.editOpList, editOps);
+  function updateUndoButton() {
+    elements.undoEditApply.disabled = applying || undoStack.length === 0;
   }
 
-  function updateUndoButton() {
-    elements.undoEditApply.disabled = undoStack.length === 0;
+  function updateDownloadButton() {
+    elements.downloadEditedPdf.disabled = applying || !preview.getTargetPdfFile();
+  }
+
+  function getToolActionButtons() {
+    return [
+      elements.addBlankPageOp,
+      elements.addImagePageOp,
+      elements.addRotateOp,
+      elements.addDeletePagesOp,
+      elements.addMovePagesOp,
+      elements.addTextOverlayOp,
+      elements.addImageOverlayOp
+    ].filter(Boolean);
+  }
+
+  function setToolActionButtonsDisabled(disabled) {
+    getToolActionButtons().forEach((button) => {
+      button.disabled = disabled;
+    });
   }
 
   function makeUndoSnapshot() {
@@ -84,11 +101,8 @@ export function createEditApp() {
 
       latestDownloadUrl = null;
       latestDownloadFilename = null;
-      elements.downloadEditedPdf.disabled = true;
-      editOps = [];
-      insertedImages = [];
-      updateEditOps();
       clearUndoHistory();
+      updateDownloadButton();
     } catch (error) {
       console.error(error);
       alert(`Failed to load PDF.\n\n${error?.message || error}`);
@@ -96,7 +110,101 @@ export function createEditApp() {
     }
   }
 
-  function addBlankPageOperation() {
+  async function applySingleOperation(op, imageItems = [], triggerButton = null) {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    if (applying) {
+      return;
+    }
+
+    const targetPdfFile = preview.getTargetPdfFile();
+    const formData = new FormData();
+    formData.append('pdf', targetPdfFile, targetPdfFile.name || 'target.pdf');
+    formData.append('operations', JSON.stringify([op]));
+
+    imageItems.forEach((item) => {
+      formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
+    });
+
+    const undoSnapshot = makeUndoSnapshot();
+    const originalButtonText = triggerButton ? triggerButton.textContent : null;
+
+    try {
+      applying = true;
+      setToolActionButtonsDisabled(true);
+      updateUndoButton();
+      updateDownloadButton();
+
+      if (triggerButton) {
+        triggerButton.textContent = 'Applying...';
+      }
+
+      setEditStatus('Applying edit...');
+
+      const response = await fetch('/edit/apply', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.ok) {
+        alert(result.error || 'Failed to apply edit.');
+        setEditStatus(result.error || 'Failed to apply edit.');
+        return;
+      }
+
+      if (!result.download_url) {
+        alert('Edit succeeded, but download URL was not returned.');
+        setEditStatus('Edit succeeded, but preview update failed.');
+        return;
+      }
+
+      setEditStatus('Loading edited preview...');
+
+      const editedResponse = await fetch(result.download_url);
+
+      if (!editedResponse.ok) {
+        throw new Error(`Failed to fetch edited PDF: ${editedResponse.status}`);
+      }
+
+      const editedBlob = await editedResponse.blob();
+      const editedFilename = result.filename || 'edited.pdf';
+
+      const editedFile = new File(
+        [editedBlob],
+        editedFilename,
+        { type: 'application/pdf' }
+      );
+
+      await preview.loadPdfFromFile(editedFile);
+      pushUndoSnapshot(undoSnapshot);
+
+      latestDownloadUrl = result.download_url;
+      latestDownloadFilename = editedFilename;
+      updateDownloadButton();
+
+      setEditStatus(`Applied edit. Current preview: ${editedFilename}`);
+    } catch (error) {
+      console.error(error);
+      alert(`Failed to apply edit.\n\n${error?.message || error}`);
+      setEditStatus(`Failed to apply edit: ${error?.message || error}`);
+    } finally {
+      applying = false;
+      setToolActionButtonsDisabled(false);
+
+      if (triggerButton && originalButtonText !== null) {
+        triggerButton.textContent = originalButtonText;
+      }
+
+      updateUndoButton();
+      updateDownloadButton();
+    }
+  }
+
+  async function addBlankPageOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -122,11 +230,10 @@ export function createEditApp() {
       op.page = page;
     }
 
-    editOps.push(op);
-    updateEditOps();
+    await applySingleOperation(op, [], elements.addBlankPageOp);
   }
 
-  function addImagePageOperation() {
+  async function addImagePageOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -148,12 +255,7 @@ export function createEditApp() {
     const position = document.getElementById('imagePosition').value;
     const pageInput = document.getElementById('imagePageNumber');
     const fit = document.getElementById('imageFitMode').value;
-
-    const imageId = `image_${Date.now()}_${insertedImages.length}`;
-    insertedImages.push({
-      id: imageId,
-      file: imageFile
-    });
+    const imageId = `image_${Date.now()}_${imageSequence++}`;
 
     const op = {
       type: 'insert_image_page',
@@ -174,11 +276,10 @@ export function createEditApp() {
       op.page = page;
     }
 
-    editOps.push(op);
-    updateEditOps();
+    await applySingleOperation(op, [{ id: imageId, file: imageFile }], elements.addImagePageOp);
   }
 
-  function addRotateOperation() {
+  async function addRotateOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -191,16 +292,14 @@ export function createEditApp() {
       return;
     }
 
-    editOps.push({
+    await applySingleOperation({
       type: 'rotate',
       pages,
       angle
-    });
-
-    updateEditOps();
+    }, [], elements.addRotateOp);
   }
 
-  function addDeletePagesOperation() {
+  async function addDeletePagesOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -212,15 +311,13 @@ export function createEditApp() {
       return;
     }
 
-    editOps.push({
+    await applySingleOperation({
       type: 'delete_pages',
       pages
-    });
-
-    updateEditOps();
+    }, [], elements.addDeletePagesOp);
   }
 
-  function addMovePagesOperation() {
+  async function addMovePagesOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -251,8 +348,7 @@ export function createEditApp() {
       op.target_page = targetPage;
     }
 
-    editOps.push(op);
-    updateEditOps();
+    await applySingleOperation(op, [], elements.addMovePagesOp);
   }
 
   function updateTextOverlayCoordinate(coordinate) {
@@ -340,7 +436,7 @@ export function createEditApp() {
     return value;
   }
 
-  function addTextOverlayOperation() {
+  async function addTextOverlayOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -379,7 +475,7 @@ export function createEditApp() {
       return;
     }
 
-    editOps.push({
+    await applySingleOperation({
       type: 'overlay_text',
       page,
       x,
@@ -387,12 +483,10 @@ export function createEditApp() {
       text,
       font_size: fontSize,
       opacity
-    });
-
-    updateEditOps();
+    }, [], elements.addTextOverlayOp);
   }
 
-  function addImageOverlayOperation() {
+  async function addImageOverlayOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
@@ -442,13 +536,9 @@ export function createEditApp() {
       return;
     }
 
-    const imageId = `overlay_image_${Date.now()}_${insertedImages.length}`;
-    insertedImages.push({
-      id: imageId,
-      file: imageFile
-    });
+    const imageId = `overlay_image_${Date.now()}_${imageSequence++}`;
 
-    editOps.push({
+    await applySingleOperation({
       type: 'overlay_image',
       image_id: imageId,
       image_name: imageFile.name,
@@ -458,138 +548,28 @@ export function createEditApp() {
       width,
       height,
       opacity
-    });
-
-    updateEditOps();
-  }
-
-  function removeEditOperation(event) {
-    const button = event.target.closest('button[data-index]');
-
-    if (!button) {
-      return;
-    }
-
-    const index = Number.parseInt(button.dataset.index, 10);
-    editOps.splice(index, 1);
-    updateEditOps();
-  }
-
-  function clearOperations() {
-    editOps = [];
-    insertedImages = [];
-    updateEditOps();
-  }
-
-  async function applyOperations() {
-    if (!preview.requireTargetPdf()) {
-      return;
-    }
-
-    if (editOps.length === 0) {
-      alert('Add at least one edit operation.');
-      return;
-    }
-
-    const targetPdfFile = preview.getTargetPdfFile();
-    const formData = new FormData();
-    formData.append('pdf', targetPdfFile, targetPdfFile.name || 'target.pdf');
-    formData.append('operations', JSON.stringify(editOps));
-
-    insertedImages.forEach((item) => {
-      formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
-    });
-
-    const undoSnapshot = makeUndoSnapshot();
-
-    try {
-      elements.applyEditOps.disabled = true;
-      elements.undoEditApply.disabled = true;
-      elements.downloadEditedPdf.disabled = true;
-      elements.applyEditOps.textContent = 'Applying...';
-      setEditStatus('Applying edits...');
-
-      const response = await fetch('/edit/apply', {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.ok) {
-        alert(result.error || 'Failed to apply edits.');
-        setEditStatus(result.error || 'Failed to apply edits.');
-        return;
-      }
-
-      if (!result.download_url) {
-        alert('Edit succeeded, but download URL was not returned.');
-        setEditStatus('Edit succeeded, but preview update failed.');
-        return;
-      }
-
-      setEditStatus('Loading edited preview...');
-
-      const editedResponse = await fetch(result.download_url);
-
-      if (!editedResponse.ok) {
-        throw new Error(`Failed to fetch edited PDF: ${editedResponse.status}`);
-      }
-
-      const editedBlob = await editedResponse.blob();
-      const editedFilename = result.filename || 'edited.pdf';
-
-      const editedFile = new File(
-        [editedBlob],
-        editedFilename,
-        { type: 'application/pdf' }
-      );
-
-      await preview.loadPdfFromFile(editedFile);
-      pushUndoSnapshot(undoSnapshot);
-
-      editOps = [];
-      insertedImages = [];
-      updateEditOps();
-
-      latestDownloadUrl = result.download_url;
-      latestDownloadFilename = editedFilename;
-      elements.downloadEditedPdf.disabled = false;
-
-      setEditStatus(`Applied edits. Current preview: ${editedFilename}`);
-    } catch (error) {
-      console.error(error);
-      alert(`Failed to apply edits.\n\n${error?.message || error}`);
-      setEditStatus(`Failed to apply edits: ${error?.message || error}`);
-    } finally {
-      elements.applyEditOps.disabled = false;
-      elements.applyEditOps.textContent = 'Apply Edits';
-      elements.downloadEditedPdf.disabled = !latestDownloadUrl;
-      updateUndoButton();
-    }
+    }, [{ id: imageId, file: imageFile }], elements.addImageOverlayOp);
   }
 
   async function undoLastApply() {
-    if (undoStack.length === 0) {
+    if (undoStack.length === 0 || applying) {
       return;
     }
 
     const snapshot = undoStack.pop();
 
     try {
-      elements.undoEditApply.disabled = true;
-      elements.applyEditOps.disabled = true;
+      applying = true;
+      setToolActionButtonsDisabled(true);
+      updateUndoButton();
+      updateDownloadButton();
       setEditStatus('Restoring previous preview...');
 
       await preview.loadPdfFromFile(snapshot.file);
 
       latestDownloadUrl = snapshot.downloadUrl;
       latestDownloadFilename = snapshot.downloadFilename;
-      elements.downloadEditedPdf.disabled = !latestDownloadUrl;
-
-      editOps = [];
-      insertedImages = [];
-      updateEditOps();
+      updateDownloadButton();
 
       setEditStatus(`Undone. Current preview: ${snapshot.file.name}`);
     } catch (error) {
@@ -598,8 +578,10 @@ export function createEditApp() {
       alert(`Failed to undo.\n\n${error?.message || error}`);
       setEditStatus(`Failed to undo: ${error?.message || error}`);
     } finally {
-      elements.applyEditOps.disabled = false;
+      applying = false;
+      setToolActionButtonsDisabled(false);
       updateUndoButton();
+      updateDownloadButton();
     }
   }
 
@@ -719,18 +701,15 @@ export function createEditApp() {
       });
     });
 
-    elements.addBlankPageOp.addEventListener('click', addBlankPageOperation);
-    elements.addImagePageOp.addEventListener('click', addImagePageOperation);
-    elements.addRotateOp.addEventListener('click', addRotateOperation);
-    elements.addDeletePagesOp.addEventListener('click', addDeletePagesOperation);
-    elements.addMovePagesOp.addEventListener('click', addMovePagesOperation);
-    elements.addTextOverlayOp.addEventListener('click', addTextOverlayOperation);
-    elements.addImageOverlayOp.addEventListener('click', addImageOverlayOperation);
+    elements.addBlankPageOp.addEventListener('click', () => { void addBlankPageOperation(); });
+    elements.addImagePageOp.addEventListener('click', () => { void addImagePageOperation(); });
+    elements.addRotateOp.addEventListener('click', () => { void addRotateOperation(); });
+    elements.addDeletePagesOp.addEventListener('click', () => { void addDeletePagesOperation(); });
+    elements.addMovePagesOp.addEventListener('click', () => { void addMovePagesOperation(); });
+    elements.addTextOverlayOp.addEventListener('click', () => { void addTextOverlayOperation(); });
+    elements.addImageOverlayOp.addEventListener('click', () => { void addImageOverlayOperation(); });
 
-    elements.editOpList.addEventListener('click', removeEditOperation);
-    elements.clearEditOps.addEventListener('click', clearOperations);
-    elements.undoEditApply.addEventListener('click', undoLastApply);
-    elements.applyEditOps.addEventListener('click', applyOperations);
+    elements.undoEditApply.addEventListener('click', () => { void undoLastApply(); });
     elements.downloadEditedPdf.addEventListener('click', downloadEditedPdf);
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
     elements.imageOverlayFile.addEventListener('change', updateSelectedImageOverlayName);
@@ -743,8 +722,8 @@ export function createEditApp() {
     bindEvents();
     currentTool = 'blank';
     setActiveTool(elements, currentTool);
-    updateEditOps();
     updateUndoButton();
+    updateDownloadButton();
   }
 
   return { init };

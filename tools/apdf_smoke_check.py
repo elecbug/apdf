@@ -379,7 +379,6 @@ class SmokeRunner:
             "imageOverlayLockRatio",
             "imageOverlayOpacity",
             "undoEditApply",
-            "applyEditOps",
             "downloadEditedPdf",
         ]
         missing = [item_id for item_id in required_ids if f'id="{item_id}"' not in html]
@@ -402,7 +401,10 @@ class SmokeRunner:
         if 'data-tool-description=' not in html:
             raise AssertionError("GET /edit: tool descriptions were not found")
 
-        return f"{len(required_ids)} control id(s), {len(required_tools)} tool card(s)"
+        if 'id="editQueueTitle"' in html or 'id="editOpList"' in html or 'id="applyEditOps"' in html:
+            raise AssertionError("GET /edit: legacy edit queue controls are still present")
+
+        return f"{len(required_ids)} control id(s), {len(required_tools)} tool card(s), instant-apply UI"
 
     def check_source_empty_list(self) -> str:
         data = assert_json_ok(

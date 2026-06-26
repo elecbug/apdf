@@ -21,10 +21,10 @@ APDF currently provides two main workflows:
   * Preview the PDF in the browser.
   * Inspect PDF point coordinates by moving the pointer over the preview.
   * Click the preview while using **Add Text** or **Add Image** to fill the target page and coordinates automatically.
-  * Queue edit operations.
-  * Apply edits and continue previewing the edited result.
-  * Undo the last applied edit batch while the page remains open.
-  * Download the edited PDF directly.
+  * Apply each configured edit immediately from the selected tool detail panel.
+  * Continue previewing the edited result after every operation.
+  * Undo the last applied edit while the page remains open.
+  * Download the current PDF directly.
 
 Current edit operations include:
 
@@ -35,7 +35,7 @@ Current edit operations include:
 * Move selected pages
 * Add text at PDF preview coordinates
 * Add images at PDF preview coordinates with explicit width and height
-* Undo the last applied edit batch
+* Undo the last applied edit
 
 ## Run
 
@@ -112,13 +112,12 @@ Steps:
    * **Add Text**
    * **Add Image**
 6. Configure the operation.
-7. Click the operation add button to add it to the edit queue.
-8. Click **Apply Edits**.
-9. The preview updates to the edited PDF.
-10. Click **Undo** to restore the previous preview state if needed.
-11. Click **Download PDF** to download the latest edited result.
+7. Click the tool action button. The edit is applied immediately and the preview updates to the edited PDF.
+8. Repeat with other tools as needed.
+9. Click **Undo** to restore the previous preview state if needed.
+10. Click **Download PDF** to download the current PDF.
 
-The Edit page is designed for iterative editing. After applying edits, the edited PDF becomes the new current preview target. Undo history is browser-memory state and is reset when a new PDF is loaded or the page is refreshed. Text and image insertion use PDF point coordinates with the origin at the bottom-left of the target page. Image insertion uses the selected coordinate as the image bottom-left corner, with width and height specified in PDF points.
+The Edit page is designed for iterative editing. Each tool action sends one operation to `/edit/apply`, then the edited PDF becomes the new current preview target. Undo history is browser-memory state and is reset when a new PDF is loaded or the page is refreshed. Text and image insertion use PDF point coordinates with the origin at the bottom-left of the target page. Image insertion uses the selected coordinate as the image bottom-left corner, with width and height specified in PDF points.
 
 ## Smoke check
 
@@ -154,7 +153,7 @@ GET    /download/{code}/{filename}
 POST   /delete-job/{code}
 ```
 
-For `/edit/apply`, it checks blank-page insertion, image-page insertion, rotation, page deletion, page movement, text overlay, image overlay, and a combined edit queue.
+For `/edit/apply`, it checks blank-page insertion, image-page insertion, rotation, page deletion, page movement, text overlay, image overlay, and a combined operation list. The UI applies one operation at a time, while the backend contract remains list-based.
 
 If legacy standalone endpoints have been removed, this optional check verifies they return `404`:
 
