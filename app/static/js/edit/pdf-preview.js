@@ -93,7 +93,7 @@ export function createPdfPreview(elements, setEditStatus) {
   bindCoordinateEvents();
   resetCoordinateLine('Coordinates: load a PDF to inspect page coordinates.');
 
-  async function loadPdfFromFile(file) {
+  async function loadPdfFromFile(file, options = {}) {
     const data = await file.arrayBuffer();
     const pdfjs = await ensurePdfJs();
 
@@ -102,9 +102,9 @@ export function createPdfPreview(elements, setEditStatus) {
     }).promise;
 
     targetPdfFile = file;
-    currentPageNumber = 1;
+    currentPageNumber = resolveInitialPageNumber(options.pageNumber);
 
-    elements.previewPageInput.value = '1';
+    elements.previewPageInput.value = String(currentPageNumber);
     elements.previewPageInput.max = String(targetPdfDocument.numPages);
     elements.previewPageCount.textContent = `/ ${targetPdfDocument.numPages}`;
 
@@ -112,6 +112,20 @@ export function createPdfPreview(elements, setEditStatus) {
     setEditStatus(`Loaded: ${file.name}`);
 
     await renderCurrentPage();
+  }
+
+  function resolveInitialPageNumber(pageNumber) {
+    if (!targetPdfDocument) {
+      return 1;
+    }
+
+    const requestedPage = Number.parseInt(pageNumber, 10);
+
+    if (!Number.isFinite(requestedPage)) {
+      return 1;
+    }
+
+    return Math.min(Math.max(requestedPage, 1), targetPdfDocument.numPages);
   }
 
   async function renderCurrentPage() {

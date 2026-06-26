@@ -58,6 +58,7 @@ export function createEditApp() {
 
     return {
       file: targetPdfFile,
+      pageNumber: preview.getCurrentPageNumber(),
       downloadUrl: latestDownloadUrl,
       downloadFilename: latestDownloadFilename
     };
@@ -129,6 +130,7 @@ export function createEditApp() {
     });
 
     const undoSnapshot = makeUndoSnapshot();
+    const pageBeforeApply = preview.getCurrentPageNumber();
     const originalButtonText = triggerButton ? triggerButton.textContent : null;
 
     try {
@@ -179,7 +181,7 @@ export function createEditApp() {
         { type: 'application/pdf' }
       );
 
-      await preview.loadPdfFromFile(editedFile);
+      await preview.loadPdfFromFile(editedFile, { pageNumber: pageBeforeApply });
       pushUndoSnapshot(undoSnapshot);
 
       latestDownloadUrl = result.download_url;
@@ -565,7 +567,7 @@ export function createEditApp() {
       updateDownloadButton();
       setEditStatus('Restoring previous preview...');
 
-      await preview.loadPdfFromFile(snapshot.file);
+      await preview.loadPdfFromFile(snapshot.file, { pageNumber: snapshot.pageNumber });
 
       latestDownloadUrl = snapshot.downloadUrl;
       latestDownloadFilename = snapshot.downloadFilename;

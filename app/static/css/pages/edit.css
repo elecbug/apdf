@@ -175,16 +175,25 @@
 }
 
 .tool-card-visual {
-  width: 46px;
-  height: 34px;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-sm);
-  background: var(--panel);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  overflow: hidden;
+}
+
+.tool-card-visual img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .edit-tool-button.active .tool-card-visual {
-  border-color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .tool-card-label {
