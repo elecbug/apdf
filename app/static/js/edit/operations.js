@@ -50,5 +50,10 @@ export function formatOperation(op) {
     return `pages ${op.pages} ${op.position} page ${op.target_page}`;
   }
 
+  if (op.type === 'overlay_text') {
+    const shortText = op.text.length > 24 ? `${op.text.slice(0, 24)}...` : op.text;
+    return `\"${shortText}\" on page ${op.page} at (${Number(op.x).toFixed(1)}, ${Number(op.y).toFixed(1)})`;
+  }
+
   return JSON.stringify(op);
 }

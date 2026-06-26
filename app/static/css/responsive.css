@@ -60,6 +60,10 @@
     grid-template-columns: 1fr;
   }
 
+  .coordinate-fields {
+    grid-template-columns: 1fr;
+  }
+
   .pdf-preview-box {
     margin-top: 16px;
     margin-bottom: 16px;

@@ -306,6 +306,7 @@ class SmokeRunner:
         self.step("POST /edit/apply rotate", self.check_edit_rotate)
         self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
         self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
+        self.step("POST /edit/apply overlay_text", self.check_edit_overlay_text)
         self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
         if self.expect_legacy_removed:
@@ -353,6 +354,14 @@ class SmokeRunner:
             "addRotateOp",
             "addDeletePagesOp",
             "addMovePagesOp",
+            "addTextOverlayOp",
+            "textOverlayText",
+            "textOverlayPage",
+            "textOverlayX",
+            "textOverlayY",
+            "textOverlayCoordinateHint",
+            "textOverlayFontSize",
+            "textOverlayOpacity",
             "undoEditApply",
             "applyEditOps",
             "downloadEditedPdf",
@@ -501,16 +510,34 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
+    def check_edit_overlay_text(self) -> str:
+        result = self.apply_edit(
+            [
+                {
+                    "type": "overlay_text",
+                    "page": 1,
+                    "x": 72,
+                    "y": 72,
+                    "text": "APDF Smoke",
+                    "font_size": 14,
+                    "opacity": 1.0,
+                }
+            ],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
     def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
         operations = [
             {"type": "insert_blank", "position": "after", "page": 1, "size": "same"},
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
             {"type": "move_pages", "pages": "1", "position": "end"},
+            {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo", "font_size": 14, "opacity": 0.9},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]
-        # +1 blank, +1 image, +0 move, +0 rotate, -1 delete => net +1.
+        # +1 blank, +1 image, +0 move, +0 text, +0 rotate, -1 delete => net +1.
         result = self.apply_edit(
             operations,
             files=[(image_id, "combo.png", PNG_MIME, SMOKE_PNG)],

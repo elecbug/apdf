@@ -9,8 +9,11 @@ from pypdf import PdfReader, PdfWriter
 from pypdf._page import PageObject
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from app.config import FONTS_DIR
 from app.services.pdf.core import open_pdf
 
 
@@ -20,6 +23,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "rotate",
     "delete_pages",
     "move_pages",
+    "overlay_text",
 }
 
 
@@ -52,6 +56,9 @@ def apply_edit_operations(
 
         elif op_type == "move_pages":
             pages = _apply_move_pages(pages, op)
+
+        elif op_type == "overlay_text":
+            pages = _apply_overlay_text(pages, op)
 
         else:
             raise ValueError(f"Unsupported edit operation at #{index}: {op_type}")
@@ -225,6 +232,123 @@ def _apply_move_pages(
         *moving_pages,
         *remaining_pages[insert_index:],
     ]
+
+
+def _apply_overlay_text(
+    pages: list[PageObject],
+    op: dict[str, Any],
+) -> list[PageObject]:
+    if not pages:
+        raise ValueError("Input PDF has no pages")
+
+    page_number = _get_page_number(op, len(pages))
+    text = str(op.get("text", ""))
+
+    if not text.strip():
+        raise ValueError("overlay_text requires non-empty text")
+
+    try:
+        x = float(op.get("x"))
+        y = float(op.get("y"))
+    except Exception as exc:
+        raise ValueError("overlay_text requires numeric x and y") from exc
+
+    if x < 0 or y < 0:
+        raise ValueError("overlay_text coordinates must be non-negative")
+
+    try:
+        font_size = int(op.get("font_size", 14))
+    except Exception as exc:
+        raise ValueError("overlay_text font_size must be an integer") from exc
+
+    if font_size < 1 or font_size > 300:
+        raise ValueError("overlay_text font_size must be between 1 and 300")
+
+    try:
+        opacity = float(op.get("opacity", 1.0))
+    except Exception as exc:
+        raise ValueError("overlay_text opacity must be numeric") from exc
+
+    if opacity < 0 or opacity > 1:
+        raise ValueError("overlay_text opacity must be between 0 and 1")
+
+    target_index = page_number - 1
+    new_pages = list(pages)
+    page = new_pages[target_index]
+    page_width, page_height = _page_size(page)
+
+    if x > page_width or y > page_height:
+        raise ValueError(
+            f"overlay_text coordinate out of page bounds: "
+            f"x={x}, y={y}, page={page_width}x{page_height}"
+        )
+
+    overlay_reader = PdfReader(
+        io.BytesIO(
+            _make_text_overlay_pdf(
+                page_width=page_width,
+                page_height=page_height,
+                text=text,
+                x=x,
+                y=y,
+                font_size=font_size,
+                opacity=opacity,
+            )
+        )
+    )
+    page.merge_page(overlay_reader.pages[0])
+
+    return new_pages
+
+
+def _make_text_overlay_pdf(
+    page_width: float,
+    page_height: float,
+    text: str,
+    x: float,
+    y: float,
+    font_size: int,
+    opacity: float,
+) -> bytes:
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+    font_name = _register_overlay_font()
+    c.setFont(font_name, font_size)
+
+    try:
+        c.setFillAlpha(opacity)
+    except Exception:
+        pass
+
+    draw_y = y
+    for line in text.splitlines():
+        c.drawString(x, draw_y, line)
+        draw_y -= font_size * 1.25
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer.read()
+
+
+def _register_overlay_font() -> str:
+    for candidate in [
+        FONTS_DIR / "NotoSansKR-Regular.ttf",
+        FONTS_DIR / "NotoSansCJKkr-Regular.otf",
+        FONTS_DIR / "NotoSansCJK-Regular.ttc",
+        Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansKR-Regular.otf"),
+        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+    ]:
+        if candidate.exists():
+            font_name = "APDFOverlayFont"
+            try:
+                pdfmetrics.registerFont(TTFont(font_name, str(candidate)))
+                return font_name
+            except Exception:
+                continue
+
+    return "Helvetica"
 
 
 def _resolve_insert_index(

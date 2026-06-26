@@ -23,6 +23,15 @@ export function getEditElements() {
     addRotateOp: document.getElementById('addRotateOp'),
     addDeletePagesOp: document.getElementById('addDeletePagesOp'),
     addMovePagesOp: document.getElementById('addMovePagesOp'),
+    addTextOverlayOp: document.getElementById('addTextOverlayOp'),
+
+    textOverlayText: document.getElementById('textOverlayText'),
+    textOverlayPage: document.getElementById('textOverlayPage'),
+    textOverlayX: document.getElementById('textOverlayX'),
+    textOverlayY: document.getElementById('textOverlayY'),
+    textOverlayCoordinateHint: document.getElementById('textOverlayCoordinateHint'),
+    textOverlayFontSize: document.getElementById('textOverlayFontSize'),
+    textOverlayOpacity: document.getElementById('textOverlayOpacity'),
 
     editOpList: document.getElementById('editOpList'),
     clearEditOps: document.getElementById('clearEditOps'),

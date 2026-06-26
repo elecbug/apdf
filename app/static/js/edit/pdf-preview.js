@@ -87,6 +87,7 @@ export function createPdfPreview(elements, setEditStatus) {
   let currentViewport = null;
   let coordinateLocked = false;
   let lastCoordinate = null;
+  const coordinateClickHandlers = [];
 
   syncZoomControl();
   bindCoordinateEvents();
@@ -219,6 +220,32 @@ export function createPdfPreview(elements, setEditStatus) {
     coordinateLocked = true;
     lastCoordinate = coordinate;
     setCoordinateLine(coordinate, 'Pinned', true);
+    notifyCoordinateClick(coordinate);
+  }
+
+  function notifyCoordinateClick(coordinate) {
+    coordinateClickHandlers.forEach((handler) => {
+      try {
+        handler({...coordinate});
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }
+
+  function onCoordinateClick(handler) {
+    if (typeof handler !== 'function') {
+      return () => {};
+    }
+
+    coordinateClickHandlers.push(handler);
+
+    return () => {
+      const index = coordinateClickHandlers.indexOf(handler);
+      if (index >= 0) {
+        coordinateClickHandlers.splice(index, 1);
+      }
+    };
   }
 
   function handlePointerLeave() {
@@ -367,6 +394,9 @@ export function createPdfPreview(elements, setEditStatus) {
     setZoom,
     zoomIn,
     zoomOut,
+    onCoordinateClick,
+    getLastCoordinate: () => lastCoordinate ? {...lastCoordinate} : null,
+    getCurrentPageNumber: () => currentPageNumber,
     getTargetPdfFile: () => targetPdfFile,
     getTargetPdfDocument: () => targetPdfDocument
   };

@@ -14,6 +14,7 @@ export function createEditApp() {
   let editOps = [];
   let insertedImages = [];
   let undoStack = [];
+  let currentTool = 'blank';
 
   function setEditStatus(message) {
     elements.editStatusLine.textContent = message;
@@ -252,6 +253,114 @@ export function createEditApp() {
     updateEditOps();
   }
 
+  function updateTextOverlayCoordinate(coordinate) {
+    if (!coordinate) {
+      return;
+    }
+
+    elements.textOverlayPage.value = String(coordinate.page);
+    elements.textOverlayX.value = coordinate.x.toFixed(1);
+    elements.textOverlayY.value = coordinate.y.toFixed(1);
+
+    if (elements.textOverlayCoordinateHint) {
+      elements.textOverlayCoordinateHint.textContent = `Selected page ${coordinate.page}, x ${coordinate.x.toFixed(1)} pt, y ${coordinate.y.toFixed(1)} pt.`;
+      elements.textOverlayCoordinateHint.classList.add('selected');
+    }
+  }
+
+  function handlePreviewCoordinateClick(coordinate) {
+    if (currentTool !== 'text') {
+      return;
+    }
+
+    updateTextOverlayCoordinate(coordinate);
+  }
+
+  function parsePositiveNumber(inputElement, label) {
+    const value = Number.parseFloat(inputElement.value);
+
+    if (!Number.isFinite(value) || value < 0) {
+      alert(`Enter a valid ${label}.`);
+      return null;
+    }
+
+    return value;
+  }
+
+  function parseFontSize(inputElement) {
+    const value = Number.parseInt(inputElement.value, 10);
+
+    if (!Number.isFinite(value) || value < 1 || value > 300) {
+      alert('Enter a valid font size between 1 and 300.');
+      return null;
+    }
+
+    return value;
+  }
+
+  function parseOpacity(inputElement) {
+    const value = Number.parseFloat(inputElement.value);
+
+    if (!Number.isFinite(value) || value < 0 || value > 1) {
+      alert('Enter a valid opacity between 0 and 1.');
+      return null;
+    }
+
+    return value;
+  }
+
+  function addTextOverlayOperation() {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    const text = elements.textOverlayText.value.trim();
+
+    if (!text) {
+      alert('Enter text to insert.');
+      elements.textOverlayText.focus();
+      return;
+    }
+
+    const page = preview.parsePageInput(elements.textOverlayPage);
+    if (page === null) {
+      alert('Click the PDF preview or enter a valid page number.');
+      return;
+    }
+
+    const x = parsePositiveNumber(elements.textOverlayX, 'X coordinate');
+    if (x === null) {
+      return;
+    }
+
+    const y = parsePositiveNumber(elements.textOverlayY, 'Y coordinate');
+    if (y === null) {
+      return;
+    }
+
+    const fontSize = parseFontSize(elements.textOverlayFontSize);
+    if (fontSize === null) {
+      return;
+    }
+
+    const opacity = parseOpacity(elements.textOverlayOpacity);
+    if (opacity === null) {
+      return;
+    }
+
+    editOps.push({
+      type: 'overlay_text',
+      page,
+      x,
+      y,
+      text,
+      font_size: fontSize,
+      opacity
+    });
+
+    updateEditOps();
+  }
+
   function removeEditOperation(event) {
     const button = event.target.closest('button[data-index]');
 
@@ -426,10 +535,12 @@ export function createEditApp() {
     elements.previewZoomSelect.addEventListener('change', () => {
       preview.setZoom(elements.previewZoomSelect.value);
     });
+    preview.onCoordinateClick(handlePreviewCoordinateClick);
 
     elements.editToolButtons.forEach((button) => {
       button.addEventListener('click', () => {
-        setActiveTool(elements, button.dataset.tool);
+        currentTool = button.dataset.tool;
+        setActiveTool(elements, currentTool);
       });
     });
 
@@ -438,6 +549,7 @@ export function createEditApp() {
     elements.addRotateOp.addEventListener('click', addRotateOperation);
     elements.addDeletePagesOp.addEventListener('click', addDeletePagesOperation);
     elements.addMovePagesOp.addEventListener('click', addMovePagesOperation);
+    elements.addTextOverlayOp.addEventListener('click', addTextOverlayOperation);
 
     elements.editOpList.addEventListener('click', removeEditOperation);
     elements.clearEditOps.addEventListener('click', clearOperations);
@@ -449,7 +561,8 @@ export function createEditApp() {
 
   function init() {
     bindEvents();
-    setActiveTool(elements, 'blank');
+    currentTool = 'blank';
+    setActiveTool(elements, currentTool);
     updateEditOps();
     updateUndoButton();
   }

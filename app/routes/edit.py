@@ -23,6 +23,7 @@ SUPPORTED_EDIT_TYPES = {
     "rotate",
     "delete_pages",
     "move_pages",
+    "overlay_text",
 }
 
 
