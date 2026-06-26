@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/3.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/4.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -291,6 +291,7 @@ class SmokeRunner:
         self.step("GET / redirect", self.check_root_redirect)
         self.step("GET /assemble", lambda: self.check_html_page("/assemble"))
         self.step("GET /edit", lambda: self.check_html_page("/edit"))
+        self.step("GET /edit UI controls", self.check_edit_ui_controls)
 
         self.step("source API: empty list", self.check_source_empty_list)
         self.step("source API: upload PDF", self.check_source_upload)
@@ -330,6 +331,34 @@ class SmokeRunner:
         if "APDF" not in response.text:
             raise AssertionError(f"GET {path}: APDF marker was not found")
         return f"{len(response.body)} bytes"
+
+    def check_edit_ui_controls(self) -> str:
+        response = self.client.get("/edit")
+        assert_status(response, {200}, "GET /edit")
+        html = response.text
+        required_ids = [
+            "editPdfFile",
+            "pdfPreviewBox",
+            "pdfCanvas",
+            "prevPageButton",
+            "previewPageInput",
+            "previewPageCount",
+            "nextPageButton",
+            "zoomOutButton",
+            "previewZoomSelect",
+            "zoomInButton",
+            "addBlankPageOp",
+            "addImagePageOp",
+            "addRotateOp",
+            "addDeletePagesOp",
+            "addMovePagesOp",
+            "applyEditOps",
+            "downloadEditedPdf",
+        ]
+        missing = [item_id for item_id in required_ids if f'id="{item_id}"' not in html]
+        if missing:
+            raise AssertionError(f"GET /edit: missing expected UI control id(s): {', '.join(missing)}")
+        return f"{len(required_ids)} control id(s)"
 
     def check_source_empty_list(self) -> str:
         data = assert_json_ok(

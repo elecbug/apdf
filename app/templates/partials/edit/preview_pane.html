@@ -6,10 +6,29 @@
     </div>
 
     <div class="preview-controls">
-      <button type="button" id="prevPageButton" class="secondary">Prev</button>
-      <input id="previewPageInput" type="number" min="1" value="1">
-      <span id="previewPageCount">/ 0</span>
-      <button type="button" id="nextPageButton" class="secondary">Next</button>
+      <div class="preview-page-controls">
+        <button type="button" id="prevPageButton" class="secondary">Prev</button>
+        <input id="previewPageInput" type="number" min="1" value="1">
+        <span id="previewPageCount">/ 0</span>
+        <button type="button" id="nextPageButton" class="secondary">Next</button>
+      </div>
+
+      <div class="preview-zoom-controls" aria-label="Preview zoom controls">
+        <button type="button" id="zoomOutButton" class="secondary" aria-label="Zoom out">−</button>
+        <select id="previewZoomSelect" aria-label="Preview zoom">
+          <option value="fit-width">Fit width</option>
+          <option value="0.5">50%</option>
+          <option value="0.75">75%</option>
+          <option value="1">100%</option>
+          <option value="1.25">125%</option>
+          <option value="1.4" selected>140%</option>
+          <option value="1.5">150%</option>
+          <option value="2">200%</option>
+          <option value="2.5">250%</option>
+          <option value="3">300%</option>
+        </select>
+        <button type="button" id="zoomInButton" class="secondary" aria-label="Zoom in">+</button>
+      </div>
     </div>
   </div>
 

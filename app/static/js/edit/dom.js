@@ -10,6 +10,9 @@ export function getEditElements() {
     nextPageButton: document.getElementById('nextPageButton'),
     previewPageInput: document.getElementById('previewPageInput'),
     previewPageCount: document.getElementById('previewPageCount'),
+    zoomOutButton: document.getElementById('zoomOutButton'),
+    previewZoomSelect: document.getElementById('previewZoomSelect'),
+    zoomInButton: document.getElementById('zoomInButton'),
 
     editToolButtons: document.querySelectorAll('.edit-tool-button'),
     toolPanels: document.querySelectorAll('.tool-panel'),

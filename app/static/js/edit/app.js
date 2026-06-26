@@ -1,5 +1,5 @@
-import { getEditElements } from './dom.js';
 import { downloadFileObject, downloadFromUrl } from './download.js';
+import { getEditElements } from './dom.js';
 import { renderEditOps } from './operations.js';
 import { createPdfPreview } from './pdf-preview.js';
 import { setActiveTool } from './tools.js';
@@ -337,6 +337,11 @@ export function createEditApp() {
     elements.prevPageButton.addEventListener('click', preview.previousPage);
     elements.nextPageButton.addEventListener('click', preview.nextPage);
     elements.previewPageInput.addEventListener('change', preview.goToInputPage);
+    elements.zoomOutButton.addEventListener('click', preview.zoomOut);
+    elements.zoomInButton.addEventListener('click', preview.zoomIn);
+    elements.previewZoomSelect.addEventListener('change', () => {
+      preview.setZoom(elements.previewZoomSelect.value);
+    });
 
     elements.editToolButtons.forEach((button) => {
       button.addEventListener('click', () => {
