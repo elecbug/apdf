@@ -25,35 +25,7 @@
   overflow: hidden;
 }
 
-.edit-control-stack {
-  height: 720px;
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) minmax(190px, 0.62fr);
-  gap: 18px;
-}
 
-.edit-tool-picker-pane,
-.edit-tool-detail-pane,
-.edit-queue-pane {
-  min-height: 0;
-  overflow: hidden;
-}
-
-.edit-tool-detail-pane,
-.edit-queue-pane {
-  display: flex;
-  flex-direction: column;
-}
-
-.edit-tool-detail-pane {
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-.edit-queue-pane {
-  overflow: hidden;
-}
 
 .preview-controls {
   display: flex;
@@ -246,13 +218,6 @@
   min-height: 0;
 }
 
-.edit-tool-panel::after {
-  content: "";
-  display: block;
-  height: 20px;
-  flex: 0 0 20px;
-}
-
 .tool-panel {
   display: none;
   gap: 10px;
@@ -304,17 +269,32 @@
   margin-bottom: 4px;
 }
 
-.edit-op-list {
-  list-style: none;
-  padding: 0 4px 0 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  flex: 1 1 auto;
+.edit-control-stack {
+  height: 720px;
   min-height: 0;
-  max-height: none;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 18px;
+}
+
+.edit-tool-picker-pane,
+.edit-tool-detail-pane,
+.edit-queue-pane {
+  min-width: 0;
+}
+
+.edit-tool-detail-pane {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.edit-queue-pane {
+  flex-shrink: 0;
+}
+
+.edit-op-list {
+  min-height: 120px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
