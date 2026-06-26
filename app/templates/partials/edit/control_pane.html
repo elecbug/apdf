@@ -1,15 +1,8 @@
-<div class="card edit-control-pane">
-  <div class="pane-head-auto">
-    <div>
-      <h2>Operations</h2>
-      <p>Select a tool, configure it, then add it to the edit queue.</p>
-    </div>
-  </div>
-
-  <section class="edit-tool-selector" aria-labelledby="editToolSelectorTitle">
-    <div class="tool-selector-head">
+<div class="edit-control-stack">
+  <section class="card edit-tool-picker-pane" aria-labelledby="editToolSelectorTitle">
+    <div class="pane-head-auto tool-picker-head">
       <div>
-        <h3 id="editToolSelectorTitle">Tools</h3>
+        <h2 id="editToolSelectorTitle">Tools</h2>
         <p id="toolHoverDescription" class="tool-hover-description">
           Hover over a tool to see what it does.
         </p>
@@ -103,10 +96,10 @@
     </div>
   </section>
 
-  <section class="edit-tool-content" aria-labelledby="activeToolTitle">
+  <section class="card edit-tool-detail-pane" aria-labelledby="activeToolTitle">
     <div class="active-tool-summary">
       <div>
-        <h3 id="activeToolTitle">Blank Page</h3>
+        <h2 id="activeToolTitle">Blank Page</h2>
         <p id="activeToolDescription">
           Insert an empty page before, after, or at the end of the current PDF.
         </p>
@@ -124,19 +117,21 @@
     </div>
   </section>
 
-  <div class="edit-queue-head">
-    <div>
-      <h2>Edit Queue</h2>
-      <p>Operations will be applied in this order.</p>
+  <section class="card edit-queue-pane" aria-labelledby="editQueueTitle">
+    <div class="edit-queue-head">
+      <div>
+        <h2 id="editQueueTitle">Edit Queue</h2>
+        <p>Operations will be applied in this order.</p>
+      </div>
+      <button type="button" id="clearEditOps" class="warning">Clear</button>
     </div>
-    <button type="button" id="clearEditOps" class="warning">Clear</button>
-  </div>
 
-  <ol id="editOpList" class="edit-op-list"></ol>
+    <ol id="editOpList" class="edit-op-list"></ol>
 
-  <div class="edit-action-row">
-    <button type="button" id="undoEditApply" class="secondary" disabled>Undo</button>
-    <button type="button" id="applyEditOps" class="primary">Apply</button>
-    <button type="button" id="downloadEditedPdf" class="secondary" disabled>Download</button>
-  </div>
+    <div class="edit-action-row">
+      <button type="button" id="undoEditApply" class="secondary" disabled>Undo</button>
+      <button type="button" id="applyEditOps" class="primary">Apply</button>
+      <button type="button" id="downloadEditedPdf" class="secondary" disabled>Download</button>
+    </div>
+  </section>
 </div>

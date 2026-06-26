@@ -25,12 +25,34 @@
   overflow: hidden;
 }
 
-.edit-control-pane {
+.edit-control-stack {
   height: 720px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) minmax(190px, 0.62fr);
+  gap: 18px;
+}
+
+.edit-tool-picker-pane,
+.edit-tool-detail-pane,
+.edit-queue-pane {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.edit-tool-detail-pane,
+.edit-queue-pane {
   display: flex;
   flex-direction: column;
+}
+
+.edit-tool-detail-pane {
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+.edit-queue-pane {
+  overflow: hidden;
 }
 
 .preview-controls {
@@ -109,19 +131,12 @@
   font-weight: 700;
 }
 
-.edit-control-pane {
-  gap: 12px;
+.tool-picker-head {
+  margin-bottom: 12px;
 }
 
-.edit-tool-selector,
-.edit-tool-content {
-  flex-shrink: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.tool-selector-head h3,
-.active-tool-summary h3 {
+.tool-picker-head h2,
+.active-tool-summary h2 {
   margin: 0 0 4px;
 }
 
@@ -138,19 +153,19 @@
 
 .edit-tool-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .edit-tool-button {
   position: relative;
   display: grid;
-  gap: 7px;
+  gap: 5px;
   width: 100%;
-  min-height: 86px;
+  min-height: 66px;
   align-content: center;
   justify-items: center;
-  padding: 10px 8px;
+  padding: 8px 6px;
   text-align: center;
   background: var(--secondary-bg);
 }
@@ -183,8 +198,8 @@
 }
 
 .tool-card-visual {
-  width: 42px;
-  height: 34px;
+  width: 36px;
+  height: 26px;
   border: 1px dashed var(--line);
   border-radius: var(--radius-sm);
   background: var(--panel);
@@ -205,14 +220,15 @@
 }
 
 .active-tool-summary {
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--panel-soft);
+  flex-shrink: 0;
+  padding: 0 0 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
 }
 
 .edit-tool-panel {
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .tool-panel {
@@ -250,12 +266,15 @@
   font-weight: 400;
 }
 
+.tool-panel button:last-child {
+  margin-bottom: 4px;
+}
+
 .edit-queue-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
-  margin-top: 4px;
   flex-shrink: 0;
 }
 
@@ -271,9 +290,9 @@
   flex-direction: column;
   gap: 10px;
 
-  flex: 0 0 auto;
-  min-height: 140px;
-  max-height: 240px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
   overflow-y: auto;
 }
 
@@ -282,7 +301,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 140px;
+  min-height: 96px;
   height: 100%;
   border: 1px dashed var(--line);
   border-radius: var(--radius-lg);

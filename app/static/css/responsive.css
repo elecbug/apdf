@@ -50,10 +50,26 @@
     grid-template-columns: 1fr;
   }
 
-  .edit-preview-pane,
-  .edit-control-pane {
+  .edit-preview-pane {
     height: auto;
     min-height: 520px;
+  }
+
+  .edit-control-stack {
+    height: auto;
+    display: grid;
+    grid-template-rows: none;
+    gap: 18px;
+  }
+
+  .edit-tool-detail-pane,
+  .edit-queue-pane {
+    overflow: visible;
+  }
+
+  .edit-op-list {
+    min-height: 140px;
+    max-height: 240px;
   }
 
   .edit-action-row {
@@ -61,7 +77,7 @@
   }
 
   .edit-tool-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .edit-tool-button:hover::after,
