@@ -1,0 +1,67 @@
+<section id="toolPanelImageOverlay" class="tool-panel">
+  <h3>Add Image</h3>
+  <p>Click the PDF preview to use that page coordinate as the image bottom-left position.</p>
+
+  <div class="tool-field">
+    <span>Image file</span>
+
+    <div class="file-picker">
+      <input
+        id="imageOverlayFile"
+        class="file-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+      >
+      <label for="imageOverlayFile" class="file-button file-button-secondary">
+        Choose Image
+      </label>
+    </div>
+
+    <p id="imageOverlayName" class="inline-file-name">No image selected.</p>
+  </div>
+
+  <div class="coordinate-fields">
+    <label>
+      Page
+      <input id="imageOverlayPage" type="number" min="1" value="1">
+    </label>
+
+    <label>
+      X
+      <input id="imageOverlayX" type="number" step="0.1" placeholder="Click preview">
+    </label>
+
+    <label>
+      Y
+      <input id="imageOverlayY" type="number" step="0.1" placeholder="Click preview">
+    </label>
+  </div>
+
+  <p id="imageOverlayCoordinateHint" class="tool-hint">
+    Select this tool, then click a PDF preview position to fill page, X, and Y.
+  </p>
+
+  <div class="size-fields">
+    <label>
+      Width (pt)
+      <input id="imageOverlayWidth" type="number" min="0.1" step="0.1" value="144">
+    </label>
+
+    <label>
+      Height (pt)
+      <input id="imageOverlayHeight" type="number" min="0.1" step="0.1" value="144">
+    </label>
+  </div>
+
+  <label class="checkbox-label">
+    <input id="imageOverlayLockRatio" type="checkbox" checked>
+    Lock width/height ratio
+  </label>
+
+  <label>
+    Opacity
+    <input id="imageOverlayOpacity" type="number" min="0" max="1" step="0.05" value="1">
+  </label>
+
+  <button type="button" id="addImageOverlayOp" class="primary width-full">Add Image</button>
+</section>

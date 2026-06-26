@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/4.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/6.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -307,6 +307,7 @@ class SmokeRunner:
         self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
         self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
         self.step("POST /edit/apply overlay_text", self.check_edit_overlay_text)
+        self.step("POST /edit/apply overlay_image", self.check_edit_overlay_image)
         self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
         if self.expect_legacy_removed:
@@ -362,6 +363,17 @@ class SmokeRunner:
             "textOverlayCoordinateHint",
             "textOverlayFontSize",
             "textOverlayOpacity",
+            "addImageOverlayOp",
+            "imageOverlayFile",
+            "imageOverlayName",
+            "imageOverlayPage",
+            "imageOverlayX",
+            "imageOverlayY",
+            "imageOverlayCoordinateHint",
+            "imageOverlayWidth",
+            "imageOverlayHeight",
+            "imageOverlayLockRatio",
+            "imageOverlayOpacity",
             "undoEditApply",
             "applyEditOps",
             "downloadEditedPdf",
@@ -527,20 +539,45 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
+    def check_edit_overlay_image(self) -> str:
+        image_id = "smoke_overlay_image"
+        result = self.apply_edit(
+            [
+                {
+                    "type": "overlay_image",
+                    "image_id": image_id,
+                    "page": 1,
+                    "x": 72,
+                    "y": 72,
+                    "width": 36,
+                    "height": 36,
+                    "opacity": 1.0,
+                }
+            ],
+            files=[(image_id, "overlay.png", PNG_MIME, SMOKE_PNG)],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
     def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
+        overlay_image_id = "combo_overlay_image"
         operations = [
             {"type": "insert_blank", "position": "after", "page": 1, "size": "same"},
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
             {"type": "move_pages", "pages": "1", "position": "end"},
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo", "font_size": 14, "opacity": 0.9},
+            {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]
-        # +1 blank, +1 image, +0 move, +0 text, +0 rotate, -1 delete => net +1.
+        # +1 blank, +1 image page, +0 move, +0 text overlay, +0 image overlay, +0 rotate, -1 delete => net +1.
         result = self.apply_edit(
             operations,
-            files=[(image_id, "combo.png", PNG_MIME, SMOKE_PNG)],
+            files=[
+                (image_id, "combo.png", PNG_MIME, SMOKE_PNG),
+                (overlay_image_id, "combo-overlay.png", PNG_MIME, SMOKE_PNG),
+            ],
             expected_delta=1,
         )
         return self.format_edit_result(result)

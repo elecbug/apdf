@@ -15,6 +15,8 @@ export function createEditApp() {
   let insertedImages = [];
   let undoStack = [];
   let currentTool = 'blank';
+  let imageOverlayRatio = null;
+  let syncingImageOverlaySize = false;
 
   function setEditStatus(message) {
     elements.editStatusLine.textContent = message;
@@ -268,18 +270,47 @@ export function createEditApp() {
     }
   }
 
-  function handlePreviewCoordinateClick(coordinate) {
-    if (currentTool !== 'text') {
+  function updateImageOverlayCoordinate(coordinate) {
+    if (!coordinate) {
       return;
     }
 
-    updateTextOverlayCoordinate(coordinate);
+    elements.imageOverlayPage.value = String(coordinate.page);
+    elements.imageOverlayX.value = coordinate.x.toFixed(1);
+    elements.imageOverlayY.value = coordinate.y.toFixed(1);
+
+    if (elements.imageOverlayCoordinateHint) {
+      elements.imageOverlayCoordinateHint.textContent = `Selected page ${coordinate.page}, x ${coordinate.x.toFixed(1)} pt, y ${coordinate.y.toFixed(1)} pt.`;
+      elements.imageOverlayCoordinateHint.classList.add('selected');
+    }
+  }
+
+  function handlePreviewCoordinateClick(coordinate) {
+    if (currentTool === 'text') {
+      updateTextOverlayCoordinate(coordinate);
+      return;
+    }
+
+    if (currentTool === 'imageOverlay') {
+      updateImageOverlayCoordinate(coordinate);
+    }
   }
 
   function parsePositiveNumber(inputElement, label) {
     const value = Number.parseFloat(inputElement.value);
 
     if (!Number.isFinite(value) || value < 0) {
+      alert(`Enter a valid ${label}.`);
+      return null;
+    }
+
+    return value;
+  }
+
+  function parsePositiveDimension(inputElement, label) {
+    const value = Number.parseFloat(inputElement.value);
+
+    if (!Number.isFinite(value) || value <= 0) {
       alert(`Enter a valid ${label}.`);
       return null;
     }
@@ -355,6 +386,77 @@ export function createEditApp() {
       y,
       text,
       font_size: fontSize,
+      opacity
+    });
+
+    updateEditOps();
+  }
+
+  function addImageOverlayOperation() {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    const imageFile = elements.imageOverlayFile.files[0];
+
+    if (!imageFile) {
+      alert('Choose an image file.');
+      return;
+    }
+
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
+    if (!allowedTypes.has(imageFile.type)) {
+      alert('Choose a PNG, JPEG, or WebP image.');
+      return;
+    }
+
+    const page = preview.parsePageInput(elements.imageOverlayPage);
+    if (page === null) {
+      alert('Click the PDF preview or enter a valid page number.');
+      return;
+    }
+
+    const x = parsePositiveNumber(elements.imageOverlayX, 'X coordinate');
+    if (x === null) {
+      return;
+    }
+
+    const y = parsePositiveNumber(elements.imageOverlayY, 'Y coordinate');
+    if (y === null) {
+      return;
+    }
+
+    const width = parsePositiveDimension(elements.imageOverlayWidth, 'image width');
+    if (width === null) {
+      return;
+    }
+
+    const height = parsePositiveDimension(elements.imageOverlayHeight, 'image height');
+    if (height === null) {
+      return;
+    }
+
+    const opacity = parseOpacity(elements.imageOverlayOpacity);
+    if (opacity === null) {
+      return;
+    }
+
+    const imageId = `overlay_image_${Date.now()}_${insertedImages.length}`;
+    insertedImages.push({
+      id: imageId,
+      file: imageFile
+    });
+
+    editOps.push({
+      type: 'overlay_image',
+      image_id: imageId,
+      image_name: imageFile.name,
+      page,
+      x,
+      y,
+      width,
+      height,
       opacity
     });
 
@@ -525,6 +627,77 @@ export function createEditApp() {
     elements.insertImageName.textContent = imageFile.name;
   }
 
+  function syncImageOverlayHeightFromWidth() {
+    if (syncingImageOverlaySize || !elements.imageOverlayLockRatio.checked || !imageOverlayRatio) {
+      return;
+    }
+
+    const width = Number.parseFloat(elements.imageOverlayWidth.value);
+
+    if (!Number.isFinite(width) || width <= 0) {
+      return;
+    }
+
+    syncingImageOverlaySize = true;
+    elements.imageOverlayHeight.value = (width * imageOverlayRatio).toFixed(1);
+    syncingImageOverlaySize = false;
+  }
+
+  function syncImageOverlayWidthFromHeight() {
+    if (syncingImageOverlaySize || !elements.imageOverlayLockRatio.checked || !imageOverlayRatio) {
+      return;
+    }
+
+    const height = Number.parseFloat(elements.imageOverlayHeight.value);
+
+    if (!Number.isFinite(height) || height <= 0) {
+      return;
+    }
+
+    syncingImageOverlaySize = true;
+    elements.imageOverlayWidth.value = (height / imageOverlayRatio).toFixed(1);
+    syncingImageOverlaySize = false;
+  }
+
+  function updateSelectedImageOverlayName() {
+    const imageFile = elements.imageOverlayFile.files[0];
+
+    if (!imageFile) {
+      elements.imageOverlayName.textContent = 'No image selected.';
+      imageOverlayRatio = null;
+      return;
+    }
+
+    const allowedTypes = new Set(['image/png', 'image/jpeg', 'image/webp']);
+
+    if (!allowedTypes.has(imageFile.type)) {
+      elements.imageOverlayName.textContent = imageFile.name;
+      imageOverlayRatio = null;
+      return;
+    }
+
+    elements.imageOverlayName.textContent = imageFile.name;
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    const image = new Image();
+
+    image.onload = () => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        imageOverlayRatio = image.naturalHeight / image.naturalWidth;
+        syncImageOverlayHeightFromWidth();
+      }
+
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.onerror = () => {
+      imageOverlayRatio = null;
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.src = objectUrl;
+  }
+
   function bindEvents() {
     elements.editPdfFile.addEventListener('change', handlePdfFileChange);
     elements.prevPageButton.addEventListener('click', preview.previousPage);
@@ -550,6 +723,7 @@ export function createEditApp() {
     elements.addDeletePagesOp.addEventListener('click', addDeletePagesOperation);
     elements.addMovePagesOp.addEventListener('click', addMovePagesOperation);
     elements.addTextOverlayOp.addEventListener('click', addTextOverlayOperation);
+    elements.addImageOverlayOp.addEventListener('click', addImageOverlayOperation);
 
     elements.editOpList.addEventListener('click', removeEditOperation);
     elements.clearEditOps.addEventListener('click', clearOperations);
@@ -557,6 +731,10 @@ export function createEditApp() {
     elements.applyEditOps.addEventListener('click', applyOperations);
     elements.downloadEditedPdf.addEventListener('click', downloadEditedPdf);
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
+    elements.imageOverlayFile.addEventListener('change', updateSelectedImageOverlayName);
+    elements.imageOverlayWidth.addEventListener('input', syncImageOverlayHeightFromWidth);
+    elements.imageOverlayHeight.addEventListener('input', syncImageOverlayWidthFromHeight);
+    elements.imageOverlayLockRatio.addEventListener('change', syncImageOverlayHeightFromWidth);
   }
 
   function init() {

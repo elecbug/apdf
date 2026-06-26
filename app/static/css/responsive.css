@@ -212,6 +212,11 @@
     margin-left: 0 !important;
   }
 
+  .coordinate-fields,
+  .size-fields {
+    grid-template-columns: 1fr;
+  }
+
   .assembly-list:empty::before {
     min-height: 100px;
   }

@@ -24,6 +24,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "delete_pages",
     "move_pages",
     "overlay_text",
+    "overlay_image",
 }
 
 
@@ -59,6 +60,9 @@ def apply_edit_operations(
 
         elif op_type == "overlay_text":
             pages = _apply_overlay_text(pages, op)
+
+        elif op_type == "overlay_image":
+            pages = _apply_overlay_image(pages, op, image_paths)
 
         else:
             raise ValueError(f"Unsupported edit operation at #{index}: {op_type}")
@@ -301,6 +305,80 @@ def _apply_overlay_text(
     return new_pages
 
 
+def _apply_overlay_image(
+    pages: list[PageObject],
+    op: dict[str, Any],
+    image_paths: dict[str, Path],
+) -> list[PageObject]:
+    if not pages:
+        raise ValueError("Input PDF has no pages")
+
+    page_number = _get_page_number(op, len(pages))
+    image_id = str(op.get("image_id", ""))
+
+    if not image_id:
+        raise ValueError("overlay_image requires image_id")
+
+    image_path = image_paths.get(image_id)
+    if not image_path:
+        raise ValueError(f"Image file not found for image_id: {image_id}")
+
+    try:
+        x = float(op.get("x"))
+        y = float(op.get("y"))
+    except Exception as exc:
+        raise ValueError("overlay_image requires numeric x and y") from exc
+
+    if x < 0 or y < 0:
+        raise ValueError("overlay_image coordinates must be non-negative")
+
+    try:
+        width = float(op.get("width"))
+        height = float(op.get("height"))
+    except Exception as exc:
+        raise ValueError("overlay_image requires numeric width and height") from exc
+
+    if width <= 0 or height <= 0:
+        raise ValueError("overlay_image width and height must be positive")
+
+    try:
+        opacity = float(op.get("opacity", 1.0))
+    except Exception as exc:
+        raise ValueError("overlay_image opacity must be numeric") from exc
+
+    if opacity < 0 or opacity > 1:
+        raise ValueError("overlay_image opacity must be between 0 and 1")
+
+    target_index = page_number - 1
+    new_pages = list(pages)
+    page = new_pages[target_index]
+    page_width, page_height = _page_size(page)
+
+    if x > page_width or y > page_height or x + width > page_width or y + height > page_height:
+        raise ValueError(
+            f"overlay_image rectangle out of page bounds: "
+            f"x={x}, y={y}, width={width}, height={height}, page={page_width}x{page_height}"
+        )
+
+    overlay_reader = PdfReader(
+        io.BytesIO(
+            _make_image_overlay_pdf(
+                page_width=page_width,
+                page_height=page_height,
+                image_path=image_path,
+                x=x,
+                y=y,
+                width=width,
+                height=height,
+                opacity=opacity,
+            )
+        )
+    )
+    page.merge_page(overlay_reader.pages[0])
+
+    return new_pages
+
+
 def _make_text_overlay_pdf(
     page_width: float,
     page_height: float,
@@ -324,6 +402,49 @@ def _make_text_overlay_pdf(
     for line in text.splitlines():
         c.drawString(x, draw_y, line)
         draw_y -= font_size * 1.25
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer.read()
+
+
+def _make_image_overlay_pdf(
+    page_width: float,
+    page_height: float,
+    image_path: Path,
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    opacity: float,
+) -> bytes:
+    image = Image.open(image_path)
+    image = ImageOps.exif_transpose(image)
+
+    if image.mode in {"P", "LA"}:
+        image = image.convert("RGBA")
+    elif image.mode not in {"RGB", "RGBA"}:
+        image = image.convert("RGB")
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+
+    try:
+        c.setFillAlpha(opacity)
+        c.setStrokeAlpha(opacity)
+    except Exception:
+        pass
+
+    c.drawImage(
+        ImageReader(image),
+        x,
+        y,
+        width=width,
+        height=height,
+        preserveAspectRatio=False,
+        mask="auto",
+    )
 
     c.showPage()
     c.save()

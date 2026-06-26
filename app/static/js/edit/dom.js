@@ -24,6 +24,7 @@ export function getEditElements() {
     addDeletePagesOp: document.getElementById('addDeletePagesOp'),
     addMovePagesOp: document.getElementById('addMovePagesOp'),
     addTextOverlayOp: document.getElementById('addTextOverlayOp'),
+    addImageOverlayOp: document.getElementById('addImageOverlayOp'),
 
     textOverlayText: document.getElementById('textOverlayText'),
     textOverlayPage: document.getElementById('textOverlayPage'),
@@ -32,6 +33,17 @@ export function getEditElements() {
     textOverlayCoordinateHint: document.getElementById('textOverlayCoordinateHint'),
     textOverlayFontSize: document.getElementById('textOverlayFontSize'),
     textOverlayOpacity: document.getElementById('textOverlayOpacity'),
+
+    imageOverlayFile: document.getElementById('imageOverlayFile'),
+    imageOverlayName: document.getElementById('imageOverlayName'),
+    imageOverlayPage: document.getElementById('imageOverlayPage'),
+    imageOverlayX: document.getElementById('imageOverlayX'),
+    imageOverlayY: document.getElementById('imageOverlayY'),
+    imageOverlayCoordinateHint: document.getElementById('imageOverlayCoordinateHint'),
+    imageOverlayWidth: document.getElementById('imageOverlayWidth'),
+    imageOverlayHeight: document.getElementById('imageOverlayHeight'),
+    imageOverlayLockRatio: document.getElementById('imageOverlayLockRatio'),
+    imageOverlayOpacity: document.getElementById('imageOverlayOpacity'),
 
     editOpList: document.getElementById('editOpList'),
     clearEditOps: document.getElementById('clearEditOps'),

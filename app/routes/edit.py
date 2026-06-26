@@ -24,6 +24,7 @@ SUPPORTED_EDIT_TYPES = {
     "delete_pages",
     "move_pages",
     "overlay_text",
+    "overlay_image",
 }
 
 
@@ -118,7 +119,7 @@ async def apply_edits(request: Request):
         image_ids = {
             sanitize_image_id(str(op.get("image_id", "")))
             for op in operations
-            if op.get("type") == "insert_image_page"
+            if op.get("type") in {"insert_image_page", "overlay_image"}
         }
 
         image_dir = root / "input" / "images"

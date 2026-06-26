@@ -55,5 +55,9 @@ export function formatOperation(op) {
     return `\"${shortText}\" on page ${op.page} at (${Number(op.x).toFixed(1)}, ${Number(op.y).toFixed(1)})`;
   }
 
+  if (op.type === 'overlay_image') {
+    return `${op.image_name} on page ${op.page} at (${Number(op.x).toFixed(1)}, ${Number(op.y).toFixed(1)}), ${Number(op.width).toFixed(1)}×${Number(op.height).toFixed(1)} pt`;
+  }
+
   return JSON.stringify(op);
 }
