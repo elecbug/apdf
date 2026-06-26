@@ -60,6 +60,15 @@
     grid-template-columns: 1fr;
   }
 
+  .edit-tool-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .edit-tool-button:hover::after,
+  .edit-tool-button:focus-visible::after {
+    display: none;
+  }
+
   .coordinate-fields {
     grid-template-columns: 1fr;
   }

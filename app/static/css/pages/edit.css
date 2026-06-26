@@ -113,24 +113,102 @@
   gap: 12px;
 }
 
-.edit-tool-tabs {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
+.edit-tool-selector,
+.edit-tool-content {
   flex-shrink: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.tool-selector-head h3,
+.active-tool-summary h3 {
+  margin: 0 0 4px;
+}
+
+.tool-hover-description,
+.active-tool-summary p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.tool-hover-description {
+  min-height: 38px;
+}
+
+.edit-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .edit-tool-button {
+  position: relative;
+  display: grid;
+  gap: 7px;
   width: 100%;
-  min-height: 40px;
-  text-align: left;
+  min-height: 86px;
+  align-content: center;
+  justify-items: center;
+  padding: 10px 8px;
+  text-align: center;
   background: var(--secondary-bg);
+}
+
+.edit-tool-button:hover::after,
+.edit-tool-button:focus-visible::after {
+  content: attr(data-tool-description);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  z-index: 10;
+  width: min(260px, 72vw);
+  transform: translateX(-50%);
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--text);
+  color: var(--white);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 600;
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
 }
 
 .edit-tool-button.active {
   background: var(--accent);
   color: var(--white);
   border-color: var(--accent);
+}
+
+.tool-card-visual {
+  width: 42px;
+  height: 34px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+}
+
+.edit-tool-button.active .tool-card-visual {
+  border-color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.tool-card-label {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.active-tool-summary {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-soft);
 }
 
 .edit-tool-panel {

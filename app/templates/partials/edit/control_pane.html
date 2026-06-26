@@ -2,29 +2,127 @@
   <div class="pane-head-auto">
     <div>
       <h2>Operations</h2>
-      <p>Select an operation, configure it, then add it to the queue.</p>
+      <p>Select a tool, configure it, then add it to the edit queue.</p>
     </div>
   </div>
 
-  <div class="edit-tool-tabs">
-    <button type="button" class="edit-tool-button active" data-tool="blank">Blank Page</button>
-    <button type="button" class="edit-tool-button" data-tool="image">Insert Image</button>
-    <button type="button" class="edit-tool-button" data-tool="rotate">Rotate Pages</button>
-    <button type="button" class="edit-tool-button" data-tool="delete">Delete Pages</button>
-    <button type="button" class="edit-tool-button" data-tool="move">Move Pages</button>
-    <button type="button" class="edit-tool-button" data-tool="text">Add Text</button>
-    <button type="button" class="edit-tool-button" data-tool="imageOverlay">Add Image</button>
-  </div>
+  <section class="edit-tool-selector" aria-labelledby="editToolSelectorTitle">
+    <div class="tool-selector-head">
+      <div>
+        <h3 id="editToolSelectorTitle">Tools</h3>
+        <p id="toolHoverDescription" class="tool-hover-description">
+          Hover over a tool to see what it does.
+        </p>
+      </div>
+    </div>
 
-  <div class="edit-tool-panel">
-    {% include "partials/edit/tools/blank.html" %}
-    {% include "partials/edit/tools/image.html" %}
-    {% include "partials/edit/tools/rotate.html" %}
-    {% include "partials/edit/tools/delete.html" %}
-    {% include "partials/edit/tools/move.html" %}
-    {% include "partials/edit/tools/text.html" %}
-    {% include "partials/edit/tools/image_overlay.html" %}
-  </div>
+    <div class="edit-tool-grid" role="tablist" aria-label="PDF edit tools">
+      <button
+        type="button"
+        class="edit-tool-button active"
+        data-tool="blank"
+        data-tool-title="Blank Page"
+        data-tool-description="Insert an empty page before, after, or at the end of the current PDF."
+        aria-label="Blank Page"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Blank</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="image"
+        data-tool-title="Image Page"
+        data-tool-description="Insert a PNG, JPEG, or WebP image as a new PDF page."
+        aria-label="Insert Image as Page"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Image Page</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="rotate"
+        data-tool-title="Rotate Pages"
+        data-tool-description="Rotate selected pages by 90, 180, or 270 degrees."
+        aria-label="Rotate Pages"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Rotate</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="delete"
+        data-tool-title="Delete Pages"
+        data-tool-description="Remove selected pages using page numbers or ranges."
+        aria-label="Delete Pages"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Delete</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="move"
+        data-tool-title="Move Pages"
+        data-tool-description="Move selected pages as one block while preserving their order."
+        aria-label="Move Pages"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Move</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="text"
+        data-tool-title="Add Text"
+        data-tool-description="Click the preview to pick a PDF coordinate, then place text at that point."
+        aria-label="Add Text"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Text</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="imageOverlay"
+        data-tool-title="Add Image"
+        data-tool-description="Click the preview to pick a PDF coordinate, then place an image with custom width and height."
+        aria-label="Add Image Overlay"
+      >
+        <span class="tool-card-visual" aria-hidden="true"></span>
+        <span class="tool-card-label">Image</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="edit-tool-content" aria-labelledby="activeToolTitle">
+    <div class="active-tool-summary">
+      <div>
+        <h3 id="activeToolTitle">Blank Page</h3>
+        <p id="activeToolDescription">
+          Insert an empty page before, after, or at the end of the current PDF.
+        </p>
+      </div>
+    </div>
+
+    <div class="edit-tool-panel">
+      {% include "partials/edit/tools/blank.html" %}
+      {% include "partials/edit/tools/image.html" %}
+      {% include "partials/edit/tools/rotate.html" %}
+      {% include "partials/edit/tools/delete.html" %}
+      {% include "partials/edit/tools/move.html" %}
+      {% include "partials/edit/tools/text.html" %}
+      {% include "partials/edit/tools/image_overlay.html" %}
+    </div>
+  </section>
 
   <div class="edit-queue-head">
     <div>

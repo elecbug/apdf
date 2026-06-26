@@ -350,6 +350,10 @@ class SmokeRunner:
             "zoomOutButton",
             "previewZoomSelect",
             "zoomInButton",
+            "editToolSelectorTitle",
+            "toolHoverDescription",
+            "activeToolTitle",
+            "activeToolDescription",
             "addBlankPageOp",
             "addImagePageOp",
             "addRotateOp",
@@ -381,7 +385,24 @@ class SmokeRunner:
         missing = [item_id for item_id in required_ids if f'id="{item_id}"' not in html]
         if missing:
             raise AssertionError(f"GET /edit: missing expected UI control id(s): {', '.join(missing)}")
-        return f"{len(required_ids)} control id(s)"
+
+        required_tools = [
+            "blank",
+            "image",
+            "rotate",
+            "delete",
+            "move",
+            "text",
+            "imageOverlay",
+        ]
+        missing_tools = [tool for tool in required_tools if f'data-tool="{tool}"' not in html]
+        if missing_tools:
+            raise AssertionError(f"GET /edit: missing expected tool button(s): {', '.join(missing_tools)}")
+
+        if 'data-tool-description=' not in html:
+            raise AssertionError("GET /edit: tool descriptions were not found")
+
+        return f"{len(required_ids)} control id(s), {len(required_tools)} tool card(s)"
 
     def check_source_empty_list(self) -> str:
         data = assert_json_ok(

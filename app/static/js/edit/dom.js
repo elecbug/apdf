@@ -17,6 +17,9 @@ export function getEditElements() {
 
     editToolButtons: document.querySelectorAll('.edit-tool-button'),
     toolPanels: document.querySelectorAll('.tool-panel'),
+    toolHoverDescription: document.getElementById('toolHoverDescription'),
+    activeToolTitle: document.getElementById('activeToolTitle'),
+    activeToolDescription: document.getElementById('activeToolDescription'),
 
     addBlankPageOp: document.getElementById('addBlankPageOp'),
     addImagePageOp: document.getElementById('addImagePageOp'),

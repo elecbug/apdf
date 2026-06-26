@@ -2,7 +2,7 @@ import { downloadFileObject, downloadFromUrl } from './download.js';
 import { getEditElements } from './dom.js';
 import { renderEditOps } from './operations.js';
 import { createPdfPreview } from './pdf-preview.js';
-import { setActiveTool } from './tools.js';
+import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 
 const MAX_UNDO_HISTORY = 20;
 
@@ -699,6 +699,8 @@ export function createEditApp() {
   }
 
   function bindEvents() {
+    bindToolHoverDescriptions(elements);
+
     elements.editPdfFile.addEventListener('change', handlePdfFileChange);
     elements.prevPageButton.addEventListener('click', preview.previousPage);
     elements.nextPageButton.addEventListener('click', preview.nextPage);
