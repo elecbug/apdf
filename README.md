@@ -1,16 +1,211 @@
-# APDF Preserve Preview Page After Apply
+# APDF
 
-Changed files:
+APDF is a lightweight internal-network PDF utility server for assembling and editing PDF files.
 
-```text
-app/static/js/edit/app.js
-app/static/js/edit/pdf-preview.js
+It is designed for short-lived internal use, not as a long-term document storage system.
+
+## Features
+
+### Assemble
+
+- Upload PDFs into a browser-session source cache.
+- Select page ranges from uploaded PDFs.
+- Reorder or remove selected ranges.
+- Build and download a new PDF.
+
+### Edit
+
+- Load and preview a PDF with PDF.js.
+- Change preview zoom.
+- Inspect and pin PDF coordinates from the preview.
+- Apply edit tools immediately.
+- Undo recent edits.
+- Download the latest edited PDF.
+
+Current edit tools:
+
+- Insert blank page
+- Insert image as page
+- Rotate pages
+- Delete pages
+- Move pages
+- Add text overlay
+- Add image overlay
+
+## Run
+
+```bash
+docker compose up -d --build
 ```
 
-Behavior:
+Open:
 
-- When an edit operation is applied, the preview reloads the edited PDF on the page number that was visible before applying the edit.
-- If the operation reduces the page count and the previous page no longer exists, the preview is clamped to the last available page.
-- Undo also restores the page number stored with the undo snapshot.
+```text
+http://SERVER_IP:8000
+```
 
-No backend files were changed.
+Restart:
+
+```bash
+docker compose restart
+```
+
+## Usage
+
+### Assemble PDFs
+
+1. Open `/assemble`.
+2. Click **Add PDFs to Sources**.
+3. Select one or more PDFs.
+4. Set page ranges.
+5. Click **Add** for each desired range.
+6. Reorder or remove ranges if needed.
+7. Click **Build PDF**.
+8. Download the result from the result page.
+
+Page numbers are 1-based.
+
+### Edit a PDF
+
+1. Open `/edit`.
+2. Click **Choose PDF to Edit**.
+3. Select a PDF.
+4. Choose a tool from the tool carousel.
+5. Configure the tool in the Details panel.
+6. Click the tool action button.
+7. APDF applies the edit immediately and refreshes the preview.
+8. Use **Undo** if needed.
+9. Click **Download PDF**.
+
+After an edit, APDF tries to keep the current preview page.
+
+## Coordinate-based editing
+
+The preview coordinate display uses:
+
+```text
+unit:   PDF point
+origin: bottom-left
+```
+
+Text and image overlay tools can use coordinates selected by clicking the PDF preview.
+
+## Storage model
+
+APDF uses temporary storage under:
+
+```text
+app/data/
+├── clients/   # browser-session source cache
+└── jobs/      # generated output jobs
+```
+
+Default expiration:
+
+```text
+Job outputs:          2 hours
+Client source cache:  6 hours
+```
+
+## Environment variables
+
+```text
+APDF_JOB_EXPIRE_SECONDS
+APDF_CLIENT_EXPIRE_SECONDS
+APDF_MAX_INLINE_BYTES
+APDF_MAX_INLINE_PAGES
+APDF_CODE_LENGTH
+APDF_CODE_ALPHABET
+APDF_DATA_DIR
+APDF_FONTS_DIR
+APDF_ACCESS_LOG_DIR
+APDF_LOG_TZ
+```
+
+## Fonts
+
+For Korean text overlay, place a supported Korean font in `fonts/`.
+
+Recommended:
+
+```text
+fonts/NotoSansKR-Regular.ttf
+```
+
+Also supported:
+
+```text
+fonts/NotoSansCJKkr-Regular.otf
+```
+
+## Tool icons
+
+Tool icons can be placed under:
+
+```text
+app/static/icons/
+```
+
+Recommended filenames:
+
+```text
+tool-blank.png
+tool-image-page.png
+tool-rotate.png
+tool-delete.png
+tool-move.png
+tool-text.png
+tool-image-overlay.png
+```
+
+## PDF.js
+
+The Edit page expects:
+
+```text
+app/static/pdfjs/pdf.mjs
+app/static/pdfjs/pdf.worker.mjs
+```
+
+## Smoke check
+
+Run APDF first, then:
+
+```bash
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf
+```
+
+To verify removed legacy endpoints:
+
+```bash
+python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed
+```
+
+## Current routes
+
+```text
+GET  /
+GET  /assemble
+GET  /edit
+GET  /job/{code}
+POST /lookup
+GET  /download/{code}/{filename}
+POST /delete-job/{code}
+
+GET    /api/clients/{client_id}/sources
+POST   /api/clients/{client_id}/sources
+DELETE /api/clients/{client_id}/sources
+DELETE /api/clients/{client_id}/sources/{source_id}
+
+POST /compose
+POST /edit/apply
+```
+
+Legacy standalone endpoints such as `/merge`, `/extract`, `/delete`, `/rotate`, `/split`, `/overlay/text`, and `/overlay/image` are not part of the current UI workflow.
+
+## Notes
+
+- APDF is intended for trusted internal networks.
+- Uploaded source files and generated outputs expire automatically.
+- Undo history is temporary and browser-side.
+- Result codes are convenient access codes, not strong authentication.
