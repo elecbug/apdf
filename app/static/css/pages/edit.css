@@ -151,26 +151,41 @@
   min-height: 38px;
 }
 
-.edit-tool-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+.edit-tool-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  padding: 4px 4px 12px;
+  margin: 0 -4px;
+
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
 }
 
 .edit-tool-button {
-  position: relative;
+  flex: 0 0 80px;
+  width: 80px;
+  min-height: 60px;
+
   display: grid;
-  gap: 5px;
-  width: 100%;
-  min-height: 66px;
-  align-content: center;
+  grid-template-rows: 44px auto;
   justify-items: center;
-  padding: 8px 6px;
+  align-items: center;
+  gap: 8px;
+
+  padding: 12px 10px;
+  border-radius: var(--radius-lg);
+
   text-align: center;
-  background: var(--secondary-bg);
+  white-space: normal;
+
+  scroll-snap-align: start;
 }
 
-.edit-tool-button:hover::after,
 .edit-tool-button:focus-visible::after {
   content: attr(data-tool-description);
   position: absolute;
@@ -206,8 +221,8 @@
 }
 
 .edit-tool-button.active .tool-card-visual {
-  border-color: rgba(255, 255, 255, 0.76);
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.75);
 }
 
 .tool-card-label {
@@ -229,6 +244,13 @@
 .edit-tool-panel {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.edit-tool-panel::after {
+  content: "";
+  display: block;
+  height: 20px;
+  flex: 0 0 20px;
 }
 
 .tool-panel {

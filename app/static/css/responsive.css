@@ -76,8 +76,9 @@
     grid-template-columns: 1fr;
   }
 
-  .edit-tool-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .edit-tool-tabs {
+    display: flex;
+    overflow-x: auto;
   }
 
   .edit-tool-button:hover::after,
