@@ -25,19 +25,31 @@ It verifies:
 
 ## Usage
 
-Run APDF first:
+With Docker Compose, the smoke checker runs once automatically after APDF becomes healthy:
 
 ```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+docker compose up -d --build
 ```
 
-Then run:
+The debug directory is mounted into the smoke container. Output is saved to:
+
+```text
+debug/.log
+```
+
+View the container logs:
 
 ```bash
-python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf
+docker compose logs smoke
 ```
 
-To also verify that legacy endpoints are removed:
+Run the smoke checker again through Docker Compose:
+
+```bash
+docker compose up smoke
+```
+
+Run it manually on the host:
 
 ```bash
 python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed

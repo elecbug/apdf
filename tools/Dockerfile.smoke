@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /smoke
+
+COPY tools/apdf_smoke_check.py ./apdf_smoke_check.py
+COPY tools/test.pdf ./test.pdf
+COPY tools/run_smoke.sh ./run_smoke.sh
+
+RUN chmod +x ./run_smoke.sh
+
+CMD ["./run_smoke.sh"]

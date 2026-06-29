@@ -39,16 +39,29 @@ Current edit tools:
 docker compose up -d --build
 ```
 
+This starts APDF and runs the smoke checker once after the APDF container becomes healthy.
+Smoke check output is written to:
+
+```text
+debug/.log
+```
+
 Open:
 
 ```text
 http://SERVER_IP:8000
 ```
 
-Restart:
+Restart APDF only:
 
 ```bash
-docker compose restart
+docker compose restart apdf
+```
+
+Run the smoke checker again:
+
+```bash
+docker compose up smoke
 ```
 
 ## Usage
@@ -173,13 +186,20 @@ app/static/pdfjs/pdf.worker.mjs
 
 ## Smoke check
 
-Run APDF first, then:
+Docker Compose runs the smoke checker once on startup through the `smoke` service.
+The debug directory is mounted into the smoke container, and the latest smoke output is saved at:
 
-```bash
-python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf
+```text
+debug/.log
 ```
 
-To verify removed legacy endpoints:
+View smoke logs:
+
+```bash
+docker compose logs smoke
+```
+
+Run smoke manually on the host:
 
 ```bash
 python tools/apdf_smoke_check.py --base-url http://127.0.0.1:8000 --pdf tools/test.pdf --expect-legacy-removed

@@ -2,5 +2,6 @@ data/
 fonts/
 
 __pycache__/
-debug/
+debug/*
+!debug/.gitkeep
 venv/

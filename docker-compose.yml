@@ -12,3 +12,32 @@ services:
       APDF_JOB_EXPIRE_SECONDS: "7200"
       APDF_MAX_INLINE_BYTES: "10485760"
       APDF_MAX_INLINE_PAGES: "200"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/assemble', timeout=3).read(1)\"",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  smoke:
+    build:
+      context: .
+      dockerfile: tools/Dockerfile.smoke
+    container_name: apdf-smoke
+    depends_on:
+      apdf:
+        condition: service_healthy
+    volumes:
+      - ./debug:/debug
+    environment:
+      APDF_SMOKE_BASE_URL: "http://apdf:8000"
+      APDF_SMOKE_PDF: "/smoke/test.pdf"
+      APDF_SMOKE_LOG: "/debug/.log"
+      APDF_SMOKE_TIMEOUT: "30"
+      APDF_SMOKE_WAIT_SECONDS: "60"
+      APDF_SMOKE_EXPECT_LEGACY_REMOVED: "1"
+    restart: "no"
