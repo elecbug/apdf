@@ -20,6 +20,7 @@ from app.services.pdf.core import open_pdf
 SUPPORTED_EDIT_OPERATION_TYPES = {
     "insert_blank",
     "insert_image_page",
+    "append_pdf",
     "rotate",
     "delete_pages",
     "move_pages",
@@ -33,9 +34,11 @@ def apply_edit_operations(
     operations: list[dict[str, Any]],
     image_paths: dict[str, Path],
     out: Path,
+    append_pdf_paths: dict[str, Path] | None = None,
 ) -> None:
     reader = open_pdf(src)
     pages = [page for page in reader.pages]
+    append_pdf_paths = append_pdf_paths or {}
 
     for index, op in enumerate(operations, start=1):
         if not isinstance(op, dict):
@@ -48,6 +51,9 @@ def apply_edit_operations(
 
         elif op_type == "insert_image_page":
             pages = _apply_insert_image_page(pages, op, image_paths)
+
+        elif op_type == "append_pdf":
+            pages = _apply_append_pdf(pages, op, append_pdf_paths)
 
         elif op_type == "rotate":
             pages = _apply_rotate_pages(pages, op)
@@ -129,6 +135,35 @@ def _apply_insert_image_page(
 
     new_pages = list(pages)
     new_pages.insert(insert_index, image_page)
+
+    return new_pages
+
+
+def _apply_append_pdf(
+    pages: list[PageObject],
+    op: dict[str, Any],
+    append_pdf_paths: dict[str, Path],
+) -> list[PageObject]:
+    pdf_id = op.get("pdf_id")
+
+    if not pdf_id:
+        raise ValueError("append_pdf requires pdf_id")
+
+    pdf_path = append_pdf_paths.get(str(pdf_id))
+
+    if not pdf_path:
+        raise ValueError(f"PDF file not found for pdf_id: {pdf_id}")
+
+    position = str(op.get("position", "after"))
+    insert_index = _resolve_insert_index(pages, op, position)
+    append_reader = open_pdf(pdf_path)
+    append_pages = [page for page in append_reader.pages]
+
+    if not append_pages:
+        raise ValueError("append_pdf input has no pages")
+
+    new_pages = list(pages)
+    new_pages[insert_index:insert_index] = append_pages
 
     return new_pages
 
@@ -546,21 +581,33 @@ def _get_page_number(op: dict[str, Any], total_pages: int) -> int:
 
 
 def _parse_page_selection(expr: str, total_pages: int) -> list[int]:
-    if not expr:
-        raise ValueError("Page selection is empty")
+    if total_pages < 1:
+        raise ValueError("Input PDF has no pages")
+
+    normalized_expr = str(expr or "").strip().lower()
+
+    if not normalized_expr or normalized_expr == "all":
+        return list(range(total_pages))
 
     selected: list[int] = []
 
-    for part in expr.split(","):
+    for part in normalized_expr.split(","):
         token = part.strip()
 
         if not token:
             continue
 
+        if token == "all":
+            selected.extend(range(total_pages))
+            continue
+
         if "-" in token:
+            if token.count("-") != 1:
+                raise ValueError(f"Invalid page range: {token}")
+
             start_text, end_text = token.split("-", 1)
-            start = int(start_text.strip())
-            end = int(end_text.strip())
+            start = 1 if not start_text.strip() else int(start_text.strip())
+            end = total_pages if not end_text.strip() else int(end_text.strip())
 
             if start > end:
                 raise ValueError(f"Invalid page range: {token}")
@@ -575,7 +622,7 @@ def _parse_page_selection(expr: str, total_pages: int) -> list[int]:
             selected.append(page_number - 1)
 
     if not selected:
-        raise ValueError("No pages selected")
+        return list(range(total_pages))
 
     return sorted(set(selected))
 

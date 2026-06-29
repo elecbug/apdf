@@ -20,6 +20,7 @@ router = APIRouter(tags=["edit"])
 SUPPORTED_EDIT_TYPES = {
     "insert_blank",
     "insert_image_page",
+    "append_pdf",
     "rotate",
     "delete_pages",
     "move_pages",
@@ -51,6 +52,17 @@ def safe_image_extension(upload: UploadFile) -> str:
         return ".webp"
 
     raise ValueError("Only PNG, JPEG, or WebP images are allowed")
+
+
+def safe_pdf_extension(upload: UploadFile) -> str:
+    filename = upload.filename or ""
+    suffix = Path(filename).suffix.lower()
+    content_type = (upload.content_type or "").lower()
+
+    if suffix == ".pdf" or content_type == "application/pdf":
+        return ".pdf"
+
+    raise ValueError("Only PDF files are allowed")
 
 
 def load_edit_operations(raw: str) -> list[dict]:
@@ -133,8 +145,33 @@ async def apply_edits(request: Request):
             total_size += await save_upload(image_upload, image_path)
             image_paths[image_id] = image_path
 
+        append_pdf_paths: dict[str, Path] = {}
+        append_pdf_ids = {
+            sanitize_image_id(str(op.get("pdf_id", "")))
+            for op in operations
+            if op.get("type") == "append_pdf"
+        }
+
+        append_pdf_dir = root / "input" / "append_pdfs"
+        for pdf_id in append_pdf_ids:
+            append_upload = form.get(pdf_id)
+            if not is_upload_file(append_upload):
+                raise ValueError(f"Missing PDF file: {pdf_id}")
+
+            ext = safe_pdf_extension(append_upload)
+            append_path = append_pdf_dir / f"{pdf_id}{ext}"
+            total_size += await save_upload(append_upload, append_path)
+
+            with append_path.open("rb") as f:
+                append_header = f.read(5)
+
+            if append_header != b"%PDF-":
+                raise ValueError(f"Uploaded append file is not a PDF. Header: {append_header!r}")
+
+            append_pdf_paths[pdf_id] = append_path
+
         out = root / "output" / "edited.pdf"
-        pdf_ops.apply_edit_operations(src, operations, image_paths, out)
+        pdf_ops.apply_edit_operations(src, operations, image_paths, out, append_pdf_paths=append_pdf_paths)
 
         total_pages = pdf_ops.page_count(out)
         mode = "inline" if total_size <= MAX_INLINE_BYTES and total_pages <= MAX_INLINE_PAGES else "job"

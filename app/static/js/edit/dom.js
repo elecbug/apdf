@@ -1,6 +1,7 @@
 export function getEditElements() {
   return {
     editPdfFile: document.getElementById('editPdfFile'),
+    editPdfDropZone: document.getElementById('editPdfDropZone'),
     editStatusLine: document.getElementById('editStatusLine'),
 
     previewInfo: document.getElementById('previewInfo'),
@@ -23,6 +24,7 @@ export function getEditElements() {
 
     addBlankPageOp: document.getElementById('addBlankPageOp'),
     addImagePageOp: document.getElementById('addImagePageOp'),
+    addAppendPdfOp: document.getElementById('addAppendPdfOp'),
     addRotateOp: document.getElementById('addRotateOp'),
     addDeletePagesOp: document.getElementById('addDeletePagesOp'),
     addMovePagesOp: document.getElementById('addMovePagesOp'),
@@ -52,6 +54,9 @@ export function getEditElements() {
     downloadEditedPdf: document.getElementById('downloadEditedPdf'),
 
     insertImageFile: document.getElementById('insertImageFile'),
-    insertImageName: document.getElementById('insertImageName')
+    insertImageName: document.getElementById('insertImageName'),
+
+    appendPdfFile: document.getElementById('appendPdfFile'),
+    appendPdfName: document.getElementById('appendPdfName')
   };
 }

@@ -43,3 +43,30 @@
   color: var(--muted);
   font-weight: 600;
 }
+
+/* Drag and drop upload targets */
+.drop-zone {
+  position: relative;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-card);
+  background: var(--panel-soft);
+}
+
+.drop-zone.drag-over::after {
+  content: "Drop PDF files here";
+  position: absolute;
+  inset: 12px;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--accent-text);
+  font-weight: 800;
+  pointer-events: none;
+}

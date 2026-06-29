@@ -1,0 +1,38 @@
+<section id="toolPanelAppend" class="tool-panel">
+  <h3>Append PDF</h3>
+  <p>Insert every page from another PDF before, after, or at the end of the current PDF.</p>
+
+  <div class="tool-field">
+    <span>PDF file</span>
+
+    <div class="file-picker">
+      <input
+        id="appendPdfFile"
+        class="file-input"
+        type="file"
+        accept="application/pdf"
+      >
+      <label for="appendPdfFile" class="file-button file-button-secondary">
+        Choose PDF
+      </label>
+    </div>
+
+    <p id="appendPdfName" class="inline-file-name">No PDF selected.</p>
+  </div>
+
+  <label>
+    Position
+    <select id="appendPosition">
+      <option value="after">After page</option>
+      <option value="before">Before page</option>
+      <option value="end">At the end</option>
+    </select>
+  </label>
+
+  <label>
+    Page
+    <input id="appendPageNumber" type="number" min="1" value="1">
+  </label>
+
+  <button type="button" id="addAppendPdfOp" class="primary width-full">Append PDF</button>
+</section>

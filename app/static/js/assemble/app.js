@@ -32,21 +32,31 @@ export function createAssembleApp() {
     updateSources();
   }
 
-  async function uploadSelectedFiles() {
-    if (!elements.fileInput.files || elements.fileInput.files.length === 0) {
+  function getPdfFiles(fileList) {
+    return Array.from(fileList || []).filter((file) => (
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    ));
+  }
+
+  async function uploadFiles(fileList) {
+    const pdfFiles = getPdfFiles(fileList);
+
+    if (pdfFiles.length === 0) {
       return;
+    }
+
+    if (fileList.length !== pdfFiles.length) {
+      setStatus('Only PDF files were added. Non-PDF files were ignored.');
     }
 
     const formData = new FormData();
 
-    for (const file of elements.fileInput.files) {
+    for (const file of pdfFiles) {
       formData.append('files', file);
     }
 
-    const count = elements.fileInput.files.length;
-
     elements.fileInput.disabled = true;
-    setStatus(`Uploading ${count} PDF(s)...`);
+    setStatus(`Uploading ${pdfFiles.length} PDF(s)...`);
 
     try {
       const data = await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
@@ -65,6 +75,62 @@ export function createAssembleApp() {
     } finally {
       elements.fileInput.disabled = false;
     }
+  }
+
+  async function uploadSelectedFiles() {
+    await uploadFiles(elements.fileInput.files);
+  }
+
+  function bindDropUpload(dropZone) {
+    if (!dropZone) {
+      return;
+    }
+
+    let dragDepth = 0;
+
+    function hasFiles(event) {
+      return Array.from(event.dataTransfer?.types || []).includes('Files');
+    }
+
+    dropZone.addEventListener('dragenter', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      dragDepth += 1;
+      dropZone.classList.add('drag-over');
+      setStatus('Drop PDF files to add them to Sources.');
+    });
+
+    dropZone.addEventListener('dragover', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+
+      if (dragDepth === 0) {
+        dropZone.classList.remove('drag-over');
+      }
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      dragDepth = 0;
+      dropZone.classList.remove('drag-over');
+
+      void uploadFiles(event.dataTransfer.files);
+    });
   }
 
   function handleSourceInput(event) {
@@ -196,6 +262,7 @@ export function createAssembleApp() {
     elements.fileInput.addEventListener('change', async () => {
       await uploadSelectedFiles();
     });
+    bindDropUpload(elements.sourceDropZone);
 
     elements.sourceRows.addEventListener('input', handleSourceInput);
     elements.sourceRows.addEventListener('click', handleSourceClick);

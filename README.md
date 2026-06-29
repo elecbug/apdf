@@ -8,14 +8,14 @@ It is designed for short-lived internal use, not as a long-term document storage
 
 ### Assemble
 
-- Upload PDFs into a browser-session source cache.
+- Upload PDFs into a browser-session source cache by choosing files or dragging PDFs onto the source list.
 - Select page ranges from uploaded PDFs.
 - Reorder or remove selected ranges.
 - Build and download a new PDF.
 
 ### Edit
 
-- Load and preview a PDF with PDF.js.
+- Load and preview a PDF with PDF.js by choosing a file or dragging a PDF onto the Edit PDF section.
 - Change preview zoom.
 - Inspect and pin PDF coordinates from the preview.
 - Apply edit tools immediately.
@@ -26,6 +26,7 @@ Current edit tools:
 
 - Insert blank page
 - Insert image as page
+- Append another PDF
 - Rotate pages
 - Delete pages
 - Move pages
@@ -55,7 +56,7 @@ docker compose restart
 ### Assemble PDFs
 
 1. Open `/assemble`.
-2. Click **Add PDFs to Sources**.
+2. Click **Add PDFs to Sources** or drag PDFs onto the source list.
 3. Select one or more PDFs.
 4. Set page ranges.
 5. Click **Add** for each desired range.
@@ -68,7 +69,7 @@ Page numbers are 1-based.
 ### Edit a PDF
 
 1. Open `/edit`.
-2. Click **Choose PDF to Edit**.
+2. Click **Choose PDF to Edit** or drag a PDF onto the Edit PDF section.
 3. Select a PDF.
 4. Choose a tool from the tool carousel.
 5. Configure the tool in the Details panel.
@@ -78,6 +79,8 @@ Page numbers are 1-based.
 9. Click **Download PDF**.
 
 After an edit, APDF tries to keep the current preview page.
+
+Page range inputs in Edit tools accept `all`, open ranges such as `10-` and `-40`, and empty input as `all`.
 
 ## Coordinate-based editing
 
@@ -151,6 +154,7 @@ Recommended filenames:
 ```text
 tool-blank.png
 tool-image-page.png
+tool-append.png        # optional; current UI may reuse another document icon
 tool-rotate.png
 tool-delete.png
 tool-move.png

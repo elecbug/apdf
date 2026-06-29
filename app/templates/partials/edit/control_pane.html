@@ -38,6 +38,21 @@
         <span class="tool-card-label">Img Page</span>
       </button>
 
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="append"
+        data-tool-title="Append PDF"
+        data-tool-description="Insert every page from another PDF before, after, or at the end of the current PDF."
+        aria-label="Append PDF"
+      >
+        <span class="tool-card-visual" aria-hidden="true">
+          <img src="/static/icons/tool-blank.png" alt="">
+        </span>
+        <span class="tool-card-label">Append</span>
+      </button>
+
       <button
         type="button"
         class="edit-tool-button"
@@ -123,6 +138,7 @@
     <div class="edit-tool-panel">
       {% include "partials/edit/tools/blank.html" %}
       {% include "partials/edit/tools/image.html" %}
+      {% include "partials/edit/tools/append.html" %}
       {% include "partials/edit/tools/rotate.html" %}
       {% include "partials/edit/tools/delete.html" %}
       {% include "partials/edit/tools/move.html" %}

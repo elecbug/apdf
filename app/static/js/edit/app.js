@@ -35,6 +35,7 @@ export function createEditApp() {
     return [
       elements.addBlankPageOp,
       elements.addImagePageOp,
+      elements.addAppendPdfOp,
       elements.addRotateOp,
       elements.addDeletePagesOp,
       elements.addMovePagesOp,
@@ -83,14 +84,18 @@ export function createEditApp() {
     updateUndoButton();
   }
 
-  async function handlePdfFileChange() {
-    const file = elements.editPdfFile.files[0];
+  function isPdfFile(file) {
+    return Boolean(file) && (
+      file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+    );
+  }
 
+  async function loadEditPdfFile(file) {
     if (!file) {
       return;
     }
 
-    if (file.type !== 'application/pdf') {
+    if (!isPdfFile(file)) {
       alert('Select a PDF file.');
       elements.editPdfFile.value = '';
       return;
@@ -109,6 +114,75 @@ export function createEditApp() {
       alert(`Failed to load PDF.\n\n${error?.message || error}`);
       setEditStatus(`Failed to load PDF: ${error?.message || error}`);
     }
+  }
+
+  async function handlePdfFileChange() {
+    await loadEditPdfFile(elements.editPdfFile.files[0]);
+  }
+
+  function bindSinglePdfDropZone(dropZone) {
+    if (!dropZone) {
+      return;
+    }
+
+    let dragDepth = 0;
+
+    function hasFiles(event) {
+      return Array.from(event.dataTransfer?.types || []).includes('Files');
+    }
+
+    dropZone.addEventListener('dragenter', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      dragDepth += 1;
+      dropZone.classList.add('drag-over');
+      setEditStatus('Drop a PDF file to load it for editing.');
+    });
+
+    dropZone.addEventListener('dragover', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+
+      if (dragDepth === 0) {
+        dropZone.classList.remove('drag-over');
+      }
+    });
+
+    dropZone.addEventListener('drop', (event) => {
+      if (!hasFiles(event)) {
+        return;
+      }
+
+      event.preventDefault();
+      dragDepth = 0;
+      dropZone.classList.remove('drag-over');
+
+      const pdfFiles = Array.from(event.dataTransfer.files || []).filter(isPdfFile);
+
+      if (pdfFiles.length === 0) {
+        alert('Drop a PDF file.');
+        setEditStatus('Dropped files did not include a PDF.');
+        return;
+      }
+
+      if (event.dataTransfer.files.length > 1) {
+        setEditStatus('Multiple files dropped. Loading the first PDF only.');
+      }
+
+      elements.editPdfFile.value = '';
+      void loadEditPdfFile(pdfFiles[0]);
+    });
   }
 
   async function applySingleOperation(op, imageItems = [], triggerButton = null) {
@@ -281,18 +355,55 @@ export function createEditApp() {
     await applySingleOperation(op, [{ id: imageId, file: imageFile }], elements.addImagePageOp);
   }
 
+  async function addAppendPdfOperation() {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    const appendFile = elements.appendPdfFile.files[0];
+
+    if (!appendFile) {
+      alert('Choose a PDF file to append.');
+      return;
+    }
+
+    if (!isPdfFile(appendFile)) {
+      alert('Choose a PDF file.');
+      return;
+    }
+
+    const position = document.getElementById('appendPosition').value;
+    const pageInput = document.getElementById('appendPageNumber');
+    const appendPdfId = `append_pdf_${Date.now()}_${imageSequence++}`;
+
+    const op = {
+      type: 'append_pdf',
+      pdf_id: appendPdfId,
+      pdf_name: appendFile.name,
+      position
+    };
+
+    if (position !== 'end') {
+      const page = preview.parsePageInput(pageInput);
+
+      if (page === null) {
+        alert('Enter a valid page number.');
+        return;
+      }
+
+      op.page = page;
+    }
+
+    await applySingleOperation(op, [{ id: appendPdfId, file: appendFile }], elements.addAppendPdfOp);
+  }
+
   async function addRotateOperation() {
     if (!preview.requireTargetPdf()) {
       return;
     }
 
-    const pages = document.getElementById('rotatePages').value.trim();
+    const pages = document.getElementById('rotatePages').value.trim() || 'all';
     const angle = Number.parseInt(document.getElementById('rotateAngle').value, 10);
-
-    if (!pages) {
-      alert('Enter pages to rotate.');
-      return;
-    }
 
     await applySingleOperation({
       type: 'rotate',
@@ -306,12 +417,7 @@ export function createEditApp() {
       return;
     }
 
-    const pages = document.getElementById('deletePages').value.trim();
-
-    if (!pages) {
-      alert('Enter pages to delete.');
-      return;
-    }
+    const pages = document.getElementById('deletePages').value.trim() || 'all';
 
     await applySingleOperation({
       type: 'delete_pages',
@@ -324,14 +430,9 @@ export function createEditApp() {
       return;
     }
 
-    const pages = document.getElementById('movePages').value.trim();
+    const pages = document.getElementById('movePages').value.trim() || 'all';
     const position = document.getElementById('movePosition').value;
     const targetPageInput = document.getElementById('moveTargetPage');
-
-    if (!pages) {
-      alert('Enter pages to move.');
-      return;
-    }
 
     const op = {
       type: 'move_pages',
@@ -611,6 +712,17 @@ export function createEditApp() {
     elements.insertImageName.textContent = imageFile.name;
   }
 
+  function updateSelectedAppendPdfName() {
+    const appendFile = elements.appendPdfFile.files[0];
+
+    if (!appendFile) {
+      elements.appendPdfName.textContent = 'No PDF selected.';
+      return;
+    }
+
+    elements.appendPdfName.textContent = appendFile.name;
+  }
+
   function syncImageOverlayHeightFromWidth() {
     if (syncingImageOverlaySize || !elements.imageOverlayLockRatio.checked || !imageOverlayRatio) {
       return;
@@ -686,6 +798,7 @@ export function createEditApp() {
     bindToolHoverDescriptions(elements);
 
     elements.editPdfFile.addEventListener('change', handlePdfFileChange);
+    bindSinglePdfDropZone(elements.editPdfDropZone);
     elements.prevPageButton.addEventListener('click', preview.previousPage);
     elements.nextPageButton.addEventListener('click', preview.nextPage);
     elements.previewPageInput.addEventListener('change', preview.goToInputPage);
@@ -705,6 +818,7 @@ export function createEditApp() {
 
     elements.addBlankPageOp.addEventListener('click', () => { void addBlankPageOperation(); });
     elements.addImagePageOp.addEventListener('click', () => { void addImagePageOperation(); });
+    elements.addAppendPdfOp.addEventListener('click', () => { void addAppendPdfOperation(); });
     elements.addRotateOp.addEventListener('click', () => { void addRotateOperation(); });
     elements.addDeletePagesOp.addEventListener('click', () => { void addDeletePagesOperation(); });
     elements.addMovePagesOp.addEventListener('click', () => { void addMovePagesOperation(); });
@@ -714,6 +828,7 @@ export function createEditApp() {
     elements.undoEditApply.addEventListener('click', () => { void undoLastApply(); });
     elements.downloadEditedPdf.addEventListener('click', downloadEditedPdf);
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
+    elements.appendPdfFile.addEventListener('change', updateSelectedAppendPdfName);
     elements.imageOverlayFile.addEventListener('change', updateSelectedImageOverlayName);
     elements.imageOverlayWidth.addEventListener('input', syncImageOverlayHeightFromWidth);
     elements.imageOverlayHeight.addEventListener('input', syncImageOverlayWidthFromHeight);

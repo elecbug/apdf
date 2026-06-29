@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/6.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/7.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -303,7 +303,9 @@ class SmokeRunner:
 
         self.step("POST /edit/apply insert_blank", self.check_edit_insert_blank)
         self.step("POST /edit/apply insert_image_page", self.check_edit_insert_image_page)
+        self.step("POST /edit/apply append_pdf", self.check_edit_append_pdf)
         self.step("POST /edit/apply rotate", self.check_edit_rotate)
+        self.step("POST /edit/apply range syntax", self.check_edit_range_syntax)
         self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
         self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
         self.step("POST /edit/apply overlay_text", self.check_edit_overlay_text)
@@ -332,6 +334,8 @@ class SmokeRunner:
             raise AssertionError(f"GET {path}: expected text/html, got {content_type!r}")
         if "APDF" not in response.text:
             raise AssertionError(f"GET {path}: APDF marker was not found")
+        if path == "/assemble" and 'id="sourceDropZone"' not in response.text:
+            raise AssertionError("GET /assemble: source drag-and-drop target was not found")
         return f"{len(response.body)} bytes"
 
     def check_edit_ui_controls(self) -> str:
@@ -340,6 +344,7 @@ class SmokeRunner:
         html = response.text
         required_ids = [
             "editPdfFile",
+            "editPdfDropZone",
             "pdfPreviewBox",
             "pdfCanvas",
             "previewCoordinateLine",
@@ -356,6 +361,11 @@ class SmokeRunner:
             "activeToolDescription",
             "addBlankPageOp",
             "addImagePageOp",
+            "addAppendPdfOp",
+            "appendPdfFile",
+            "appendPdfName",
+            "appendPosition",
+            "appendPageNumber",
             "addRotateOp",
             "addDeletePagesOp",
             "addMovePagesOp",
@@ -388,6 +398,7 @@ class SmokeRunner:
         required_tools = [
             "blank",
             "image",
+            "append",
             "rotate",
             "delete",
             "move",
@@ -519,9 +530,25 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
+    def check_edit_append_pdf(self) -> str:
+        pdf_id = "smoke_append_pdf"
+        result = self.apply_edit(
+            [{"type": "append_pdf", "pdf_id": pdf_id, "position": "end"}],
+            files=[(pdf_id, "append.pdf", PDF_MIME, self.pdf_bytes)],
+            expected_delta=self.page_count,
+        )
+        return self.format_edit_result(result)
+
     def check_edit_rotate(self) -> str:
         result = self.apply_edit(
             [{"type": "rotate", "pages": "1", "angle": 90}],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
+    def check_edit_range_syntax(self) -> str:
+        result = self.apply_edit(
+            [{"type": "rotate", "pages": "all,1-, -1", "angle": 180}],
             expected_delta=0,
         )
         return self.format_edit_result(result)
@@ -584,24 +611,28 @@ class SmokeRunner:
 
     def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
+        append_pdf_id = "combo_append_pdf"
         overlay_image_id = "combo_overlay_image"
         operations = [
             {"type": "insert_blank", "position": "after", "page": 1, "size": "same"},
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
-            {"type": "move_pages", "pages": "1", "position": "end"},
+            {"type": "append_pdf", "pdf_id": append_pdf_id, "position": "end"},
+            {"type": "move_pages", "pages": "1-", "position": "end"},
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo", "font_size": 14, "opacity": 0.9},
             {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]
-        # +1 blank, +1 image page, +0 move, +0 text overlay, +0 image overlay, +0 rotate, -1 delete => net +1.
+        # +1 blank, +1 image page, +original append, +0 move, +0 text overlay,
+        # +0 image overlay, +0 rotate, -1 delete => net + original_pages + 1.
         result = self.apply_edit(
             operations,
             files=[
                 (image_id, "combo.png", PNG_MIME, SMOKE_PNG),
+                (append_pdf_id, "combo-append.pdf", PDF_MIME, self.pdf_bytes),
                 (overlay_image_id, "combo-overlay.png", PNG_MIME, SMOKE_PNG),
             ],
-            expected_delta=1,
+            expected_delta=self.page_count + 1,
         )
         return self.format_edit_result(result)
 
