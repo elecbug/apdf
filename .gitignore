@@ -1,7 +1,13 @@
-data/
-fonts/
-
+# Python build cache and venv directories
 __pycache__/
-debug/*
-!debug/.gitkeep
 venv/
+
+# Runtime and environment directories
+debug/*
+fonts/*
+data/*
+
+# Directory keepers
+!debug/.gitkeep
+!fonts/.gitkeep
+!data/.gitkeep
