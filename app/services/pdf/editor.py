@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import re
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "insert_image_page",
     "append_pdf",
     "rotate",
+    "page_numbers",
     "delete_pages",
     "move_pages",
     "overlay_text",
@@ -57,6 +59,9 @@ def apply_edit_operations(
 
         elif op_type == "rotate":
             pages = _apply_rotate_pages(pages, op)
+
+        elif op_type == "page_numbers":
+            pages = _apply_page_numbers(pages, op)
 
         elif op_type == "delete_pages":
             pages = _apply_delete_pages(pages, op)
@@ -183,6 +188,66 @@ def _apply_rotate_pages(
 
     for index in target_indexes:
         new_pages[index].rotate(angle)
+
+    return new_pages
+
+
+def _apply_page_numbers(
+    pages: list[PageObject],
+    op: dict[str, Any],
+) -> list[PageObject]:
+    if not pages:
+        raise ValueError("Input PDF has no pages")
+
+    try:
+        start_page = int(op.get("start_page", 1))
+    except Exception as exc:
+        raise ValueError("page_numbers start_page must be an integer") from exc
+
+    if start_page < 1 or start_page > len(pages):
+        raise ValueError(f"page_numbers start_page out of range: {start_page}")
+
+    try:
+        start_number = int(op.get("start_number", 1))
+    except Exception as exc:
+        raise ValueError("page_numbers start_number must be an integer") from exc
+
+    if start_number < 0:
+        raise ValueError("page_numbers start_number must be zero or greater")
+
+    position = _normalize_page_number_position(str(op.get("position", "bottom-center")))
+    number_format = str(op.get("format", "N")).strip() or "N"
+    numbering_style = _normalize_numbering_style(str(op.get("numbering_style", "decimal")))
+
+    if "N" not in number_format:
+        raise ValueError("page_numbers format must contain N")
+
+    if numbering_style != "decimal" and start_number < 1:
+        raise ValueError("Alphabetic and Roman page numbers require start_number >= 1")
+
+    new_pages = list(pages)
+
+    for page_index in range(start_page - 1, len(new_pages)):
+        logical_number = start_number + (page_index - (start_page - 1))
+        label = _format_page_number_label(
+            value=logical_number,
+            number_format=number_format,
+            numbering_style=numbering_style,
+        )
+
+        page = new_pages[page_index]
+        page_width, page_height = _page_size(page)
+        overlay_reader = PdfReader(
+            io.BytesIO(
+                _make_page_number_overlay_pdf(
+                    page_width=page_width,
+                    page_height=page_height,
+                    label=label,
+                    position=position,
+                )
+            )
+        )
+        page.merge_page(overlay_reader.pages[0])
 
     return new_pages
 
@@ -412,6 +477,160 @@ def _apply_overlay_image(
     page.merge_page(overlay_reader.pages[0])
 
     return new_pages
+
+
+def _normalize_page_number_position(position: str) -> str:
+    normalized = position.strip().lower().replace("_", "-")
+    allowed = {
+        "top-left",
+        "top-center",
+        "top-right",
+        "bottom-left",
+        "bottom-center",
+        "bottom-right",
+    }
+    if normalized not in allowed:
+        raise ValueError(f"Invalid page number position: {position}")
+    return normalized
+
+
+def _normalize_numbering_style(style: str) -> str:
+    normalized = style.strip().lower().replace("_", "-")
+    aliases = {
+        "1": "decimal",
+        "1-2-3": "decimal",
+        "number": "decimal",
+        "numbers": "decimal",
+        "numeric": "decimal",
+        "decimal": "decimal",
+        "a-b-c": "lower-alpha",
+        "lower-alpha": "lower-alpha",
+        "loweralpha": "lower-alpha",
+        "alphabetic-lower": "lower-alpha",
+        "a": "lower-alpha",
+        "abc": "lower-alpha",
+        "upper-alpha": "upper-alpha",
+        "upperalpha": "upper-alpha",
+        "alphabetic-upper": "upper-alpha",
+        "i-ii-iii": "lower-roman",
+        "lower-roman": "lower-roman",
+        "lowerroman": "lower-roman",
+        "roman-lower": "lower-roman",
+        "upper-roman": "upper-roman",
+        "upperroman": "upper-roman",
+        "roman-upper": "upper-roman",
+    }
+    resolved = aliases.get(normalized)
+    if not resolved:
+        raise ValueError(f"Invalid page number style: {style}")
+    return resolved
+
+
+def _format_page_number_label(value: int, number_format: str, numbering_style: str) -> str:
+    def replace_run(match: Any) -> str:
+        width = len(match.group(0))
+        return _format_page_number_value(value, numbering_style, width)
+
+    return re.sub(r"N+", replace_run, number_format)
+
+
+def _format_page_number_value(value: int, numbering_style: str, width: int) -> str:
+    if numbering_style == "decimal":
+        return str(value).zfill(width) if width > 1 else str(value)
+
+    if value < 1:
+        raise ValueError("Alphabetic and Roman page numbers require values >= 1")
+
+    if numbering_style == "upper-alpha":
+        return _to_alpha(value, uppercase=True)
+
+    if numbering_style == "lower-alpha":
+        return _to_alpha(value, uppercase=False)
+
+    if numbering_style == "upper-roman":
+        return _to_roman(value)
+
+    if numbering_style == "lower-roman":
+        return _to_roman(value).lower()
+
+    raise ValueError(f"Invalid page number style: {numbering_style}")
+
+
+def _to_alpha(value: int, *, uppercase: bool) -> str:
+    if value < 1:
+        raise ValueError("Alphabetic page numbers require values >= 1")
+
+    letters: list[str] = []
+    current = value
+    while current > 0:
+        current -= 1
+        letters.append(chr(ord("A") + (current % 26)))
+        current //= 26
+
+    result = "".join(reversed(letters))
+    return result if uppercase else result.lower()
+
+
+def _to_roman(value: int) -> str:
+    if value < 1 or value > 3999:
+        raise ValueError("Roman page numbers require values from 1 to 3999")
+
+    numerals = [
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
+    ]
+    remaining = value
+    parts: list[str] = []
+    for amount, symbol in numerals:
+        while remaining >= amount:
+            parts.append(symbol)
+            remaining -= amount
+    return "".join(parts)
+
+
+def _make_page_number_overlay_pdf(
+    page_width: float,
+    page_height: float,
+    label: str,
+    position: str,
+) -> bytes:
+    margin = 36.0
+    font_size = 10
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
+    font_name = _register_overlay_font()
+    c.setFont(font_name, font_size)
+
+    text_width = pdfmetrics.stringWidth(label, font_name, font_size)
+
+    if position.endswith("left"):
+        x = margin
+    elif position.endswith("center"):
+        x = (page_width - text_width) / 2
+    else:
+        x = page_width - margin - text_width
+
+    if position.startswith("top"):
+        y = page_height - margin - font_size
+    else:
+        y = margin
+
+    c.drawString(x, y, label)
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer.read()
 
 
 def _make_text_overlay_pdf(

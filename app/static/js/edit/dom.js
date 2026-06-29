@@ -26,10 +26,17 @@ export function getEditElements() {
     addImagePageOp: document.getElementById('addImagePageOp'),
     addAppendPdfOp: document.getElementById('addAppendPdfOp'),
     addRotateOp: document.getElementById('addRotateOp'),
+    addPageNumbersOp: document.getElementById('addPageNumbersOp'),
     addDeletePagesOp: document.getElementById('addDeletePagesOp'),
     addMovePagesOp: document.getElementById('addMovePagesOp'),
     addTextOverlayOp: document.getElementById('addTextOverlayOp'),
     addImageOverlayOp: document.getElementById('addImageOverlayOp'),
+
+    pageNumberStartPage: document.getElementById('pageNumberStartPage'),
+    pageNumberStartNumber: document.getElementById('pageNumberStartNumber'),
+    pageNumberPosition: document.getElementById('pageNumberPosition'),
+    pageNumberFormat: document.getElementById('pageNumberFormat'),
+    pageNumberStyle: document.getElementById('pageNumberStyle'),
 
     textOverlayText: document.getElementById('textOverlayText'),
     textOverlayPage: document.getElementById('textOverlayPage'),

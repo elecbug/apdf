@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/7.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/8.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -305,6 +305,7 @@ class SmokeRunner:
         self.step("POST /edit/apply insert_image_page", self.check_edit_insert_image_page)
         self.step("POST /edit/apply append_pdf", self.check_edit_append_pdf)
         self.step("POST /edit/apply rotate", self.check_edit_rotate)
+        self.step("POST /edit/apply page_numbers", self.check_edit_page_numbers)
         self.step("POST /edit/apply range syntax", self.check_edit_range_syntax)
         self.step("POST /edit/apply delete_pages", self.check_edit_delete_pages)
         self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
@@ -367,6 +368,12 @@ class SmokeRunner:
             "appendPosition",
             "appendPageNumber",
             "addRotateOp",
+            "addPageNumbersOp",
+            "pageNumberStartPage",
+            "pageNumberStartNumber",
+            "pageNumberPosition",
+            "pageNumberFormat",
+            "pageNumberStyle",
             "addDeletePagesOp",
             "addMovePagesOp",
             "addTextOverlayOp",
@@ -400,6 +407,7 @@ class SmokeRunner:
             "image",
             "append",
             "rotate",
+            "pageNumbers",
             "delete",
             "move",
             "text",
@@ -546,6 +554,22 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
+    def check_edit_page_numbers(self) -> str:
+        result = self.apply_edit(
+            [
+                {
+                    "type": "page_numbers",
+                    "start_page": 1,
+                    "start_number": 1,
+                    "position": "bottom-center",
+                    "format": "-NN-",
+                    "numbering_style": "decimal",
+                }
+            ],
+            expected_delta=0,
+        )
+        return self.format_edit_result(result)
+
     def check_edit_range_syntax(self) -> str:
         result = self.apply_edit(
             [{"type": "rotate", "pages": "all,1-, -1", "angle": 180}],
@@ -618,13 +642,14 @@ class SmokeRunner:
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
             {"type": "append_pdf", "pdf_id": append_pdf_id, "position": "end"},
             {"type": "move_pages", "pages": "1-", "position": "end"},
+            {"type": "page_numbers", "start_page": 1, "start_number": 1, "position": "bottom-center", "format": "N", "numbering_style": "decimal"},
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo", "font_size": 14, "opacity": 0.9},
             {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]
         # +1 blank, +1 image page, +original append, +0 move, +0 text overlay,
-        # +0 image overlay, +0 rotate, -1 delete => net + original_pages + 1.
+        # +0 page numbers, +0 text overlay, +0 image overlay, +0 rotate, -1 delete => net + original_pages + 1.
         result = self.apply_edit(
             operations,
             files=[

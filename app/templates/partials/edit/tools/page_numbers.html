@@ -1,0 +1,46 @@
+<section id="toolPanelPageNumbers" class="tool-panel">
+  <h3>Page Numbers</h3>
+  <p>Add formatted page numbers from a selected starting page.</p>
+
+  <div class="coordinate-fields">
+    <label>
+      Start page
+      <input id="pageNumberStartPage" type="number" min="1" value="1">
+    </label>
+
+    <label>
+      Start number
+      <input id="pageNumberStartNumber" type="number" min="0" value="1">
+    </label>
+  </div>
+
+  <label>
+    Position
+    <select id="pageNumberPosition">
+      <option value="top-left">Top left</option>
+      <option value="top-center">Top center</option>
+      <option value="top-right">Top right</option>
+      <option value="bottom-left">Bottom left</option>
+      <option value="bottom-center" selected>Bottom center</option>
+      <option value="bottom-right">Bottom right</option>
+    </select>
+  </label>
+
+  <label>
+    Format
+    <input id="pageNumberFormat" value="N" placeholder="Examples: N, -N-, -NN-">
+  </label>
+
+  <label>
+    Number style
+    <select id="pageNumberStyle">
+      <option value="decimal">1 2 3</option>
+      <option value="upper-alpha">A B C</option>
+      <option value="lower-alpha">a b c</option>
+      <option value="upper-roman">I II III</option>
+      <option value="lower-roman">i ii iii</option>
+    </select>
+  </label>
+
+  <button type="button" id="addPageNumbersOp" class="primary width-full">Add Page Numbers</button>
+</section>

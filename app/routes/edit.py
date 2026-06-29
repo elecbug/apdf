@@ -22,6 +22,7 @@ SUPPORTED_EDIT_TYPES = {
     "insert_image_page",
     "append_pdf",
     "rotate",
+    "page_numbers",
     "delete_pages",
     "move_pages",
     "overlay_text",

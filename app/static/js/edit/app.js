@@ -37,6 +37,7 @@ export function createEditApp() {
       elements.addImagePageOp,
       elements.addAppendPdfOp,
       elements.addRotateOp,
+      elements.addPageNumbersOp,
       elements.addDeletePagesOp,
       elements.addMovePagesOp,
       elements.addTextOverlayOp,
@@ -410,6 +411,49 @@ export function createEditApp() {
       pages,
       angle
     }, [], elements.addRotateOp);
+  }
+
+  function parseNonNegativeInteger(inputElement, label) {
+    const value = Number.parseInt(inputElement.value, 10);
+
+    if (!Number.isInteger(value) || value < 0) {
+      alert(`Enter a valid ${label}.`);
+      return null;
+    }
+
+    return value;
+  }
+
+  async function addPageNumbersOperation() {
+    if (!preview.requireTargetPdf()) {
+      return;
+    }
+
+    const startPage = preview.parsePageInput(elements.pageNumberStartPage);
+    if (startPage === null) {
+      alert('Enter a valid start page.');
+      return;
+    }
+
+    const startNumber = parseNonNegativeInteger(elements.pageNumberStartNumber, 'start number');
+    if (startNumber === null) {
+      return;
+    }
+
+    const format = elements.pageNumberFormat.value.trim() || 'N';
+    if (!/N+/.test(format)) {
+      alert('Format must contain N. Examples: N, -N-, -NN-.');
+      return;
+    }
+
+    await applySingleOperation({
+      type: 'page_numbers',
+      start_page: startPage,
+      start_number: startNumber,
+      position: elements.pageNumberPosition.value,
+      format,
+      numbering_style: elements.pageNumberStyle.value
+    }, [], elements.addPageNumbersOp);
   }
 
   async function addDeletePagesOperation() {
@@ -820,6 +864,7 @@ export function createEditApp() {
     elements.addImagePageOp.addEventListener('click', () => { void addImagePageOperation(); });
     elements.addAppendPdfOp.addEventListener('click', () => { void addAppendPdfOperation(); });
     elements.addRotateOp.addEventListener('click', () => { void addRotateOperation(); });
+    elements.addPageNumbersOp.addEventListener('click', () => { void addPageNumbersOperation(); });
     elements.addDeletePagesOp.addEventListener('click', () => { void addDeletePagesOperation(); });
     elements.addMovePagesOp.addEventListener('click', () => { void addMovePagesOperation(); });
     elements.addTextOverlayOp.addEventListener('click', () => { void addTextOverlayOperation(); });

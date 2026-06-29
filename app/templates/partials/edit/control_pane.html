@@ -48,7 +48,7 @@
         aria-label="Append PDF"
       >
         <span class="tool-card-visual" aria-hidden="true">
-          <img src="/static/icons/tool-append.png" alt="">
+          <img src="/static/icons/tool-blank.png" alt="">
         </span>
         <span class="tool-card-label">Append</span>
       </button>
@@ -65,6 +65,20 @@
           <img src="/static/icons/tool-rotate.png" alt="">
         </span>
         <span class="tool-card-label">Rotate</span>
+      </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="pageNumbers"
+        data-tool-title="Page Numbers"
+        data-tool-description="Add formatted page numbers from a selected starting page."
+        aria-label="Page Numbers"
+      >
+        <span class="tool-card-visual" aria-hidden="true">
+          <img src="/static/icons/tool-page-number.png" alt="">
+        </span>
+        <span class="tool-card-label">Numbers</span>
       </button>
 
       <button
@@ -140,6 +154,7 @@
       {% include "partials/edit/tools/image.html" %}
       {% include "partials/edit/tools/append.html" %}
       {% include "partials/edit/tools/rotate.html" %}
+      {% include "partials/edit/tools/page_numbers.html" %}
       {% include "partials/edit/tools/delete.html" %}
       {% include "partials/edit/tools/move.html" %}
       {% include "partials/edit/tools/text.html" %}
