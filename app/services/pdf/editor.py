@@ -228,7 +228,8 @@ def _apply_page_numbers(
     new_pages = list(pages)
 
     for page_index in range(start_page - 1, len(new_pages)):
-        logical_number = start_number + (page_index - (start_page - 1))
+        numbered_page_offset = page_index - (start_page - 1)
+        logical_number = start_number + numbered_page_offset
         label = _format_page_number_label(
             value=logical_number,
             number_format=number_format,
@@ -237,13 +238,17 @@ def _apply_page_numbers(
 
         page = new_pages[page_index]
         page_width, page_height = _page_size(page)
+        resolved_position = _resolve_page_number_position_for_page(
+            position=position,
+            numbered_page_offset=numbered_page_offset,
+        )
         overlay_reader = PdfReader(
             io.BytesIO(
                 _make_page_number_overlay_pdf(
                     page_width=page_width,
                     page_height=page_height,
                     label=label,
-                    position=position,
+                    position=resolved_position,
                 )
             )
         )
@@ -485,13 +490,37 @@ def _normalize_page_number_position(position: str) -> str:
         "top-left",
         "top-center",
         "top-right",
+        "top-alternate-left",
+        "top-alternate-right",
         "bottom-left",
         "bottom-center",
         "bottom-right",
+        "bottom-alternate-left",
+        "bottom-alternate-right",
     }
     if normalized not in allowed:
         raise ValueError(f"Invalid page number position: {position}")
     return normalized
+
+
+def _resolve_page_number_position_for_page(position: str, numbered_page_offset: int) -> str:
+    if position == "top-alternate-left":
+        side = "left" if numbered_page_offset % 2 == 0 else "right"
+        return f"top-{side}"
+
+    if position == "top-alternate-right":
+        side = "right" if numbered_page_offset % 2 == 0 else "left"
+        return f"top-{side}"
+
+    if position == "bottom-alternate-left":
+        side = "left" if numbered_page_offset % 2 == 0 else "right"
+        return f"bottom-{side}"
+
+    if position == "bottom-alternate-right":
+        side = "right" if numbered_page_offset % 2 == 0 else "left"
+        return f"bottom-{side}"
+
+    return position
 
 
 def _normalize_numbering_style(style: str) -> str:

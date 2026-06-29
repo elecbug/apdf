@@ -561,7 +561,7 @@ class SmokeRunner:
                     "type": "page_numbers",
                     "start_page": 1,
                     "start_number": 1,
-                    "position": "bottom-center",
+                    "position": "bottom-alternate-left",
                     "format": "-NN-",
                     "numbering_style": "decimal",
                 }
@@ -642,7 +642,7 @@ class SmokeRunner:
             {"type": "insert_image_page", "image_id": image_id, "position": "end", "fit": "fit"},
             {"type": "append_pdf", "pdf_id": append_pdf_id, "position": "end"},
             {"type": "move_pages", "pages": "1-", "position": "end"},
-            {"type": "page_numbers", "start_page": 1, "start_number": 1, "position": "bottom-center", "format": "N", "numbering_style": "decimal"},
+            {"type": "page_numbers", "start_page": 1, "start_number": 1, "position": "top-alternate-right", "format": "N", "numbering_style": "decimal"},
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo", "font_size": 14, "opacity": 0.9},
             {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
             {"type": "rotate", "pages": "1,3", "angle": 180},
