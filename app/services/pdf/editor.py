@@ -216,14 +216,9 @@ def _apply_page_numbers(
         raise ValueError("page_numbers start_number must be zero or greater")
 
     position = _normalize_page_number_position(str(op.get("position", "bottom-center")))
-    number_format = str(op.get("format", "N")).strip() or "N"
+    raw_number_format = op.get("format", "N")
+    number_format = "N" if raw_number_format is None or str(raw_number_format) == "" else str(raw_number_format)
     numbering_style = _normalize_numbering_style(str(op.get("numbering_style", "decimal")))
-
-    if "N" not in number_format:
-        raise ValueError("page_numbers format must contain N")
-
-    if numbering_style != "decimal" and start_number < 1:
-        raise ValueError("Alphabetic and Roman page numbers require start_number >= 1")
 
     new_pages = list(pages)
 
@@ -556,11 +551,51 @@ def _normalize_numbering_style(style: str) -> str:
 
 
 def _format_page_number_label(value: int, number_format: str, numbering_style: str) -> str:
-    def replace_run(match: Any) -> str:
-        width = len(match.group(0))
-        return _format_page_number_value(value, numbering_style, width)
+    parts: list[str] = []
+    i = 0
 
-    return re.sub(r"N+", replace_run, number_format)
+    while i < len(number_format):
+        ch = number_format[i]
+
+        if ch == "\\":
+            if i + 1 >= len(number_format):
+                parts.append("\\")
+                i += 1
+                continue
+
+            next_ch = number_format[i + 1]
+
+            if next_ch == "N":
+                parts.append("N")
+                i += 2
+                continue
+
+            if next_ch == "\\":
+                parts.append("\\")
+                i += 2
+                continue
+
+            # Unknown escapes are preserved literally.
+            # Example: "\\x" remains "\\x".
+            parts.append("\\")
+            parts.append(next_ch)
+            i += 2
+            continue
+
+        if ch == "N":
+            j = i
+            while j < len(number_format) and number_format[j] == "N":
+                j += 1
+
+            width = j - i
+            parts.append(_format_page_number_value(value, numbering_style, width))
+            i = j
+            continue
+
+        parts.append(ch)
+        i += 1
+
+    return "".join(parts)
 
 
 def _format_page_number_value(value: int, numbering_style: str, width: int) -> str:

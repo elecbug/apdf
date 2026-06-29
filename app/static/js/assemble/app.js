@@ -174,7 +174,6 @@ export function createAssembleApp() {
 
     if (removeButton) {
       const sourceId = removeButton.dataset.sourceId;
-      if (!confirm('Remove this source PDF from the browser-session cache?')) return;
 
       try {
         await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources/${encodeURIComponent(sourceId)}`, {
@@ -211,8 +210,6 @@ export function createAssembleApp() {
   }
 
   async function clearSources() {
-    if (!confirm('Clear all source PDFs for this browser session?')) return;
-
     try {
       await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
         method: 'DELETE'

@@ -1,5 +1,5 @@
-import { downloadFileObject, downloadFromUrl } from './download.js';
 import { getEditElements } from './dom.js';
+import { downloadFileObject, downloadFromUrl } from './download.js';
 import { createPdfPreview } from './pdf-preview.js';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 
@@ -440,11 +440,8 @@ export function createEditApp() {
       return;
     }
 
-    const format = elements.pageNumberFormat.value.trim() || 'N';
-    if (!/N+/.test(format)) {
-      alert('Format must contain N. Examples: N, -N-, -NN-.');
-      return;
-    }
+    const rawFormat = elements.pageNumberFormat.value;
+    const format = rawFormat === '' ? 'N' : rawFormat;
 
     await applySingleOperation({
       type: 'page_numbers',
