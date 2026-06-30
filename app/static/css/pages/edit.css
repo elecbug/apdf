@@ -19,14 +19,14 @@
 }
 
 .edit-preview-pane {
-  height: 720px;
+  height: 900px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
 .edit-control-stack {
-  height: 720px;
+  height: 900px;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -143,7 +143,7 @@
 .edit-tool-grid {
   display: flex;
   flex-direction: row;
-  gap: 10px;
+  gap: 5px;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px 4px 12px;
