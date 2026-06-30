@@ -2,7 +2,7 @@
   <div class="pane-head">
     <div>
       <h2>Sources</h2>
-      <p>Set a page range, then press Add. You can also drag PDF files onto this source list.</p>
+      <p>Drag PDFs here, adjust order and page ranges, then build directly from the current list.</p>
     </div>
     <div class="upload-box">
       <div class="split-box">
@@ -10,7 +10,7 @@
           <input id="pdfFiles" class="file-input" type="file" accept="application/pdf" multiple>
           <label for="pdfFiles" class="button-like primary file-button">Add PDFs to Sources</label>
         </div>
-        <div class="toolbar-actions">
+        <div>
           <button type="button" id="clearSources" class="warning width-full">Clear Sources</button>
         </div>
       </div>
@@ -34,4 +34,5 @@
       </tbody>
     </table>
   </div>
+  <button type="button" id="buildButton" class="primary width-full">Build PDF</button>
 </div>

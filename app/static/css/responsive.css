@@ -27,9 +27,8 @@
     grid-auto-flow: row;
   }
 
-  .source-pane,
-  .assembly-pane {
-    height: 480px;
+  .source-pane {
+    min-height: 480px;
   }
 
   .site-footer {
@@ -206,7 +205,7 @@
   .source-pane tbody td.source-actions {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: 1fr 1fr 2fr;
     gap: 8px;
     width: 100% !important;
     white-space: normal;
@@ -219,16 +218,9 @@
     font-size: 14px;
   }
 
-  .source-pane tbody td.source-actions button + button {
-    margin-left: 0 !important;
-  }
-
   .coordinate-fields,
   .size-fields {
     grid-template-columns: 1fr;
   }
 
-  .assembly-list:empty::before {
-    min-height: 100px;
-  }
 }

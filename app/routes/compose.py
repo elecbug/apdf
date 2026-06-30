@@ -51,8 +51,20 @@ async def compose(request: Request):
         total_pages = pdf_ops.page_count(out)
         mode = "inline" if total_size <= MAX_INLINE_BYTES and total_pages <= MAX_INLINE_PAGES else "job"
 
-        finalize_job(meta, [out], f"Assembled {len(plan)} ranges into {total_pages} pages. Mode: {mode}")
-        return JSONResponse({"ok": True, "code": meta.code, "url": f"/job/{meta.code}"})
+        finalize_job(meta, [out], f"Assembled {len(plan)} source PDF(s) into {total_pages} pages. Mode: {mode}")
+
+        response = {
+            "ok": True,
+            "code": meta.code,
+            "mode": mode,
+            "url": f"/job/{meta.code}",
+            "filename": out.name,
+        }
+
+        if mode == "inline":
+            response["download_url"] = f"/download/{meta.code}/{out.name}"
+
+        return JSONResponse(response)
 
     except Exception as exc:
         fail_job(meta, exc)

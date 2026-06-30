@@ -104,7 +104,7 @@ class APDFClient:
         req = urllib.request.Request(
             self.url(path),
             data=data,
-            headers={"User-Agent": "apdf-smoke-check/8.0", **(headers or {})},
+            headers={"User-Agent": "apdf-smoke-check/9.0", **(headers or {})},
             method=method.upper(),
         )
 
@@ -335,8 +335,13 @@ class SmokeRunner:
             raise AssertionError(f"GET {path}: expected text/html, got {content_type!r}")
         if "APDF" not in response.text:
             raise AssertionError(f"GET {path}: APDF marker was not found")
-        if path == "/assemble" and 'id="sourceDropZone"' not in response.text:
-            raise AssertionError("GET /assemble: source drag-and-drop target was not found")
+        if path == "/assemble":
+            if 'id="sourceDropZone"' not in response.text:
+                raise AssertionError("GET /assemble: source drag-and-drop target was not found")
+            if 'id="buildButton"' not in response.text:
+                raise AssertionError("GET /assemble: build button was not found")
+            if 'id="assemblyList"' in response.text or 'id="clearAssembly"' in response.text:
+                raise AssertionError("GET /assemble: legacy Result/Assembly controls are still present")
         return f"{len(response.body)} bytes"
 
     def check_edit_ui_controls(self) -> str:
@@ -481,9 +486,14 @@ class SmokeRunner:
         code = str(data.get("code", "")).upper()
         if not code:
             raise AssertionError(f"POST /compose: missing code: {data!r}")
+        download_url = data.get("download_url")
+        if data.get("mode") == "inline":
+            if not isinstance(download_url, str) or not download_url:
+                raise AssertionError(f"POST /compose: inline response missing download_url: {data!r}")
+            assert_pdf_response(self.client.get(download_url), "download inline assembled PDF")
         self.assert_job_done_and_download(code, "assembled.pdf")
         self.delete_job(code)
-        return f"code={code}, pages=1-{end_page}"
+        return f"code={code}, mode={data.get('mode')}, pages=1-{end_page}"
 
     def check_lookup(self) -> str:
         if not self.source_id:

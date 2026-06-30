@@ -2,33 +2,71 @@ import { apiJson } from '../shared/api.js';
 import { getOrCreateClientId } from '../shared/client-id.js';
 import { clampInput, normalizePositiveInt } from '../shared/input.js';
 import { getAssembleElements } from './dom.js';
-import { renderAssembly, renderSources } from './render.js';
-import { createAssemblyStorage } from './storage.js';
+import { renderSources } from './render.js';
+import { createSourceOrderStorage } from './storage.js';
 
 export function createAssembleApp() {
   const elements = getAssembleElements();
   const clientId = getOrCreateClientId();
-  const assemblyStorage = createAssemblyStorage(clientId);
+  const sourceOrderStorage = createSourceOrderStorage(clientId);
 
   let sources = [];
-  let assembly = [];
 
   function setStatus(message) {
     elements.statusLine.textContent = message;
   }
 
-  function updateSources() {
-    renderSources(elements.sourceRows, sources);
+  function downloadFromUrl(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'assembled.pdf';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
-  function updateAssembly() {
-    renderAssembly(elements.assemblyList, assembly);
-    assemblyStorage.save(assembly);
+  function readCurrentRange(source) {
+    const startInput = document.getElementById(`start-${source.source_id}`);
+    const endInput = document.getElementById(`end-${source.source_id}`);
+
+    const start = normalizePositiveInt(startInput?.value, source.start || 1);
+    const end = normalizePositiveInt(endInput?.value, source.end || source.pages);
+
+    return {
+      start: Math.max(1, Math.min(start, source.pages)),
+      end: Math.max(1, Math.min(end, source.pages))
+    };
+  }
+
+  function captureSourceRanges() {
+    sources = sources.map((source) => ({
+      ...source,
+      ...readCurrentRange(source)
+    }));
+  }
+
+  function normalizeSource(source, previousById) {
+    const previous = previousById.get(source.source_id);
+    const start = previous?.start || 1;
+    const end = previous?.end || source.pages;
+
+    return {
+      ...source,
+      start: Math.max(1, Math.min(start, source.pages)),
+      end: Math.max(1, Math.min(Math.max(start, end), source.pages))
+    };
+  }
+
+  function updateSources() {
+    renderSources(elements.sourceRows, sources);
+    sourceOrderStorage.save(sources);
   }
 
   async function loadSources() {
+    const previousById = new Map(sources.map((source) => [source.source_id, source]));
     const data = await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`);
-    sources = data.sources || [];
+    const loaded = (data.sources || []).map((source) => normalizeSource(source, previousById));
+    sources = sourceOrderStorage.apply(loaded);
     updateSources();
   }
 
@@ -49,6 +87,8 @@ export function createAssembleApp() {
       setStatus('Only PDF files were added. Non-PDF files were ignored.');
     }
 
+    captureSourceRanges();
+
     const formData = new FormData();
 
     for (const file of pdfFiles) {
@@ -56,6 +96,7 @@ export function createAssembleApp() {
     }
 
     elements.fileInput.disabled = true;
+    elements.buildButton.disabled = true;
     setStatus(`Uploading ${pdfFiles.length} PDF(s)...`);
 
     try {
@@ -74,6 +115,7 @@ export function createAssembleApp() {
       setStatus('Upload failed.');
     } finally {
       elements.fileInput.disabled = false;
+      elements.buildButton.disabled = false;
     }
   }
 
@@ -136,39 +178,40 @@ export function createAssembleApp() {
   function handleSourceInput(event) {
     const input = event.target.closest('input.page-input');
     if (!input) return;
+
     clampInput(input);
+
+    const row = input.closest('tr[data-source-id]');
+    const source = sources.find((item) => item.source_id === row?.dataset.sourceId);
+
+    if (source) {
+      Object.assign(source, readCurrentRange(source));
+    }
+  }
+
+  function moveSource(sourceId, direction) {
+    captureSourceRanges();
+
+    const index = sources.findIndex((item) => item.source_id === sourceId);
+    if (index < 0) {
+      return;
+    }
+
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= sources.length) {
+      return;
+    }
+
+    [sources[index], sources[targetIndex]] = [sources[targetIndex], sources[index]];
+    updateSources();
   }
 
   async function handleSourceClick(event) {
-    const addButton = event.target.closest('button.add-btn');
+    const moveButton = event.target.closest('button.move-source');
     const removeButton = event.target.closest('button.remove-source');
 
-    if (addButton) {
-      const sourceId = addButton.dataset.sourceId;
-      const source = sources.find((item) => item.source_id === sourceId);
-      if (!source) return;
-
-      const startInput = document.getElementById(`start-${sourceId}`);
-      const endInput = document.getElementById(`end-${sourceId}`);
-      const start = normalizePositiveInt(startInput.value, 1);
-      const end = normalizePositiveInt(endInput.value, source.pages);
-
-      if (start > source.pages || end > source.pages) {
-        alert(`Page range exceeds PDF page count. Max: ${source.pages}`);
-        return;
-      }
-      if (end < start) {
-        alert('Last page must be greater than or equal to First page.');
-        return;
-      }
-
-      assembly.push({
-        source_id: source.source_id,
-        name: source.name,
-        start,
-        end
-      });
-      updateAssembly();
+    if (moveButton) {
+      moveSource(moveButton.dataset.sourceId, moveButton.dataset.action);
       return;
     }
 
@@ -176,12 +219,12 @@ export function createAssembleApp() {
       const sourceId = removeButton.dataset.sourceId;
 
       try {
+        captureSourceRanges();
         await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources/${encodeURIComponent(sourceId)}`, {
           method: 'DELETE'
         });
-        assembly = assembly.filter((item) => item.source_id !== sourceId);
-        await loadSources();
-        updateAssembly();
+        sources = sources.filter((item) => item.source_id !== sourceId);
+        updateSources();
         setStatus('Source removed.');
       } catch (error) {
         alert(error.message);
@@ -189,24 +232,38 @@ export function createAssembleApp() {
     }
   }
 
-  function handleAssemblyClick(event) {
-    const button = event.target.closest('button');
-    if (!button) return;
+  function buildPlanFromSources() {
+    captureSourceRanges();
 
-    const index = Number.parseInt(button.dataset.index, 10);
-    const action = button.dataset.action;
+    if (sources.length === 0) {
+      alert('Add at least one source PDF.');
+      return null;
+    }
 
-    if (action === 'remove') assembly.splice(index, 1);
-    if (action === 'up' && index > 0) [assembly[index - 1], assembly[index]] = [assembly[index], assembly[index - 1]];
-    if (action === 'down' && index < assembly.length - 1) [assembly[index + 1], assembly[index]] = [assembly[index], assembly[index + 1]];
+    const plan = [];
 
-    updateAssembly();
-  }
+    for (const source of sources) {
+      const start = normalizePositiveInt(source.start, 1);
+      const end = normalizePositiveInt(source.end, source.pages);
 
-  function clearAssembly() {
-    assembly = [];
-    assemblyStorage.clear();
-    updateAssembly();
+      if (start > source.pages || end > source.pages) {
+        alert(`Page range exceeds PDF page count for ${source.name}. Max: ${source.pages}`);
+        return null;
+      }
+
+      if (end < start) {
+        alert(`Last page must be greater than or equal to First page for ${source.name}.`);
+        return null;
+      }
+
+      plan.push({
+        source_id: source.source_id,
+        start,
+        end
+      });
+    }
+
+    return plan;
   }
 
   async function clearSources() {
@@ -215,10 +272,8 @@ export function createAssembleApp() {
         method: 'DELETE'
       });
       sources = [];
-      assembly = [];
-      assemblyStorage.clear();
+      sourceOrderStorage.clear();
       updateSources();
-      updateAssembly();
       setStatus('Sources cleared.');
     } catch (error) {
       alert(error.message);
@@ -226,8 +281,9 @@ export function createAssembleApp() {
   }
 
   async function buildPdf() {
-    if (assembly.length === 0) {
-      alert('Add at least one range to Assembly.');
+    const plan = buildPlanFromSources();
+
+    if (!plan) {
       return;
     }
 
@@ -237,7 +293,7 @@ export function createAssembleApp() {
     try {
       const payload = {
         client_id: clientId,
-        plan: assembly.map(({source_id, start, end}) => ({source_id, start, end}))
+        plan
       };
 
       const data = await apiJson('/compose', {
@@ -246,7 +302,18 @@ export function createAssembleApp() {
         body: JSON.stringify(payload)
       });
 
-      window.location.href = data.url;
+      if (data.download_url) {
+        downloadFromUrl(data.download_url, data.filename || 'assembled.pdf');
+        setStatus(`Built PDF. Download started. Result code: ${data.code}`);
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      throw new Error('Build succeeded, but no download or result URL was returned.');
     } catch (error) {
       alert(error.message);
       setStatus('Build failed.');
@@ -263,8 +330,6 @@ export function createAssembleApp() {
 
     elements.sourceRows.addEventListener('input', handleSourceInput);
     elements.sourceRows.addEventListener('click', handleSourceClick);
-    elements.assemblyList.addEventListener('click', handleAssemblyClick);
-    elements.clearAssembly.addEventListener('click', clearAssembly);
     elements.clearSourcesButton.addEventListener('click', clearSources);
     elements.buildButton.addEventListener('click', buildPdf);
   }
@@ -274,8 +339,6 @@ export function createAssembleApp() {
 
     try {
       await loadSources();
-      assembly = assemblyStorage.load(sources);
-      updateAssembly();
       setStatus(`Session: ${clientId.slice(0, 8)}...`);
     } catch (error) {
       setStatus('Failed to restore sources.');

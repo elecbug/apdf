@@ -1,45 +1,47 @@
-export function createAssemblyStorage(clientId) {
-  const storageKey = `apdf_assembly_${clientId}`;
+export function createSourceOrderStorage(clientId) {
+  const storageKey = `apdf_source_order_${clientId}`;
 
   return {
-    save(assembly) {
-      localStorage.setItem(storageKey, JSON.stringify(assembly));
+    save(sources) {
+      const sourceIds = sources.map((source) => source.source_id);
+      localStorage.setItem(storageKey, JSON.stringify(sourceIds));
     },
 
-    load(sources) {
+    apply(sources) {
       const raw = localStorage.getItem(storageKey);
 
       if (!raw) {
-        return [];
+        return sources;
       }
 
       try {
-        const loaded = JSON.parse(raw);
+        const sourceIds = JSON.parse(raw);
 
-        if (!Array.isArray(loaded)) {
-          return [];
+        if (!Array.isArray(sourceIds)) {
+          return sources;
         }
 
-        const validSourceIds = new Set(sources.map(source => source.source_id));
+        const sourceMap = new Map(sources.map((source) => [source.source_id, source]));
+        const ordered = [];
+        const used = new Set();
 
-        return loaded
-          .filter(item => validSourceIds.has(item.source_id))
-          .map(item => {
-            const source = sources.find(source => source.source_id === item.source_id);
-            const maxPage = source.pages;
+        sourceIds.forEach((sourceId) => {
+          const source = sourceMap.get(sourceId);
+          if (source && !used.has(sourceId)) {
+            ordered.push(source);
+            used.add(sourceId);
+          }
+        });
 
-            const start = Math.max(1, Math.min(Number.parseInt(item.start, 10) || 1, maxPage));
-            const end = Math.max(start, Math.min(Number.parseInt(item.end, 10) || maxPage, maxPage));
+        sources.forEach((source) => {
+          if (!used.has(source.source_id)) {
+            ordered.push(source);
+          }
+        });
 
-            return {
-              source_id: item.source_id,
-              name: source.name,
-              start,
-              end
-            };
-          });
+        return ordered;
       } catch {
-        return [];
+        return sources;
       }
     },
 

@@ -9,9 +9,10 @@ It is designed for short-lived internal use, not as a long-term document storage
 ### Assemble
 
 - Upload PDFs into a browser-session source cache by choosing files or dragging PDFs onto the source list.
-- Select page ranges from uploaded PDFs.
-- Reorder or remove selected ranges.
-- Build and download a new PDF.
+- Select page ranges directly in the source list.
+- Reorder or remove source PDFs.
+- Build a new PDF from the current source list.
+- Small synchronous results download immediately after Build.
 
 ### Edit
 
@@ -70,12 +71,11 @@ docker compose up smoke
 
 1. Open `/assemble`.
 2. Click **Add PDFs to Sources** or drag PDFs onto the source list.
-3. Select one or more PDFs.
-4. Set page ranges.
-5. Click **Add** for each desired range.
-6. Reorder or remove ranges if needed.
-7. Click **Build PDF**.
-8. Download the result from the result page.
+3. Reorder source PDFs with the up/down buttons if needed.
+4. Set the First/Last page range for each source.
+5. Remove unwanted sources if needed.
+6. Click **Build PDF**.
+7. Small synchronous results download immediately. Larger/background results open the result page.
 
 Page numbers are 1-based.
 

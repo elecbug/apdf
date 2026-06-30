@@ -1,3 +1,12 @@
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export function renderSources(sourceRows, sources) {
   sourceRows.innerHTML = '';
 
@@ -6,11 +15,15 @@ export function renderSources(sourceRows, sources) {
     return;
   }
 
-  sources.forEach((source) => {
+  sources.forEach((source, index) => {
     const tr = document.createElement('tr');
+    const safeName = escapeHtml(source.name);
+    const isFirst = index === 0;
+    const isLast = index === sources.length - 1;
+
     tr.dataset.sourceId = source.source_id;
     tr.innerHTML = `
-      <td class="filename" title="${source.name}">${source.name}</td>
+      <td class="filename" title="${safeName}">${safeName}</td>
       <td>${source.pages}</td>
       <td>
         <input class="page-input"
@@ -18,7 +31,7 @@ export function renderSources(sourceRows, sources) {
                type="number"
                min="1"
                max="${source.pages}"
-               value="1">
+               value="${source.start || 1}">
       </td>
       <td>
         <input class="page-input"
@@ -26,36 +39,24 @@ export function renderSources(sourceRows, sources) {
                type="number"
                min="1"
                max="${source.pages}"
-               value="${source.pages}">
+               value="${source.end || source.pages}">
       </td>
       <td class="source-actions">
-        <button type="button" class="add-btn" data-source-id="${source.source_id}">Add</button>
+        <button type="button"
+                class="move-source"
+                data-action="up"
+                data-source-id="${source.source_id}"
+                ${isFirst ? 'disabled' : ''}
+                title="Move up">↑</button>
+        <button type="button"
+                class="move-source"
+                data-action="down"
+                data-source-id="${source.source_id}"
+                ${isLast ? 'disabled' : ''}
+                title="Move down">↓</button>
         <button type="button" class="remove-source" data-source-id="${source.source_id}">Remove</button>
       </td>
     `;
     sourceRows.appendChild(tr);
-  });
-}
-
-export function renderAssembly(assemblyList, assembly) {
-  assemblyList.innerHTML = '';
-
-  assembly.forEach((item, index) => {
-    const li = document.createElement('li');
-
-    li.innerHTML = `
-      <span>
-        <strong>${index + 1}.</strong>
-        ${item.name}
-        <code>${item.start}-${item.end}</code>
-      </span>
-      <span class="item-actions">
-        <button type="button" data-action="up" data-index="${index}">↑</button>
-        <button type="button" data-action="down" data-index="${index}">↓</button>
-        <button type="button" data-action="remove" data-index="${index}">Remove</button>
-      </span>
-    `;
-
-    assemblyList.appendChild(li);
   });
 }
