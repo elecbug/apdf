@@ -428,7 +428,19 @@ class SmokeRunner:
         if 'id="editQueueTitle"' in html or 'id="editOpList"' in html or 'id="applyEditOps"' in html:
             raise AssertionError("GET /edit: legacy edit queue controls are still present")
 
-        return f"{len(required_ids)} control id(s), {len(required_tools)} tool card(s), instant-apply UI"
+        preview_js_response = self.client.get("/static/js/edit/pdf-preview.js")
+        assert_status(preview_js_response, {200}, "GET /static/js/edit/pdf-preview.js")
+        preview_js = preview_js_response.text
+        if "onCoordinateDrag" not in preview_js or "pdf-drag-selection-box" not in preview_js:
+            raise AssertionError("GET /edit: preview drag selection support was not found")
+
+        app_js_response = self.client.get("/static/js/edit/app.js")
+        assert_status(app_js_response, {200}, "GET /static/js/edit/app.js")
+        app_js = app_js_response.text
+        if "updateImageOverlayRectangle" not in app_js or "Width-driven ratio lock applied" not in app_js:
+            raise AssertionError("GET /edit: image overlay drag sizing support was not found")
+
+        return f"{len(required_ids)} control id(s), {len(required_tools)} tool card(s), instant-apply UI, preview drag sizing"
 
     def check_source_empty_list(self) -> str:
         data = assert_json_ok(
