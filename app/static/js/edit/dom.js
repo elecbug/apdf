@@ -45,7 +45,9 @@ export function getEditElements() {
     textOverlayMaxWidth: document.getElementById('textOverlayMaxWidth'),
     textOverlayCoordinateHint: document.getElementById('textOverlayCoordinateHint'),
     textOverlayFontSize: document.getElementById('textOverlayFontSize'),
+    textOverlayColor: document.getElementById('textOverlayColor'),
     textOverlayOpacity: document.getElementById('textOverlayOpacity'),
+    textOverlayClearAfterApply: document.getElementById('textOverlayClearAfterApply'),
 
     imageOverlayFile: document.getElementById('imageOverlayFile'),
     imageOverlayName: document.getElementById('imageOverlayName'),

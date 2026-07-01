@@ -188,11 +188,11 @@ export function createEditApp() {
 
   async function applySingleOperation(op, imageItems = [], triggerButton = null) {
     if (!preview.requireTargetPdf()) {
-      return;
+      return false;
     }
 
     if (applying) {
-      return;
+      return false;
     }
 
     const targetPdfFile = preview.getTargetPdfFile();
@@ -230,13 +230,13 @@ export function createEditApp() {
       if (!response.ok || !result.ok) {
         alert(result.error || 'Failed to apply edit.');
         setEditStatus(result.error || 'Failed to apply edit.');
-        return;
+        return false;
       }
 
       if (!result.download_url) {
         alert('Edit succeeded, but download URL was not returned.');
         setEditStatus('Edit succeeded, but preview update failed.');
-        return;
+        return false;
       }
 
       setEditStatus('Loading edited preview...');
@@ -264,10 +264,12 @@ export function createEditApp() {
       updateDownloadButton();
 
       setEditStatus(`Applied edit. Current preview: ${editedFilename}`);
+      return true;
     } catch (error) {
       console.error(error);
       alert(`Failed to apply edit.\n\n${error?.message || error}`);
       setEditStatus(`Failed to apply edit: ${error?.message || error}`);
+      return false;
     } finally {
       applying = false;
       setToolActionButtonsDisabled(false);
@@ -674,9 +676,9 @@ export function createEditApp() {
       return;
     }
 
-    const text = elements.textOverlayText.value.trim();
+    const text = elements.textOverlayText.value;
 
-    if (!text) {
+    if (!text.trim()) {
       alert('Enter text to insert.');
       elements.textOverlayText.focus();
       return;
@@ -708,6 +710,8 @@ export function createEditApp() {
       return;
     }
 
+    const color = elements.textOverlayColor?.value || '#000000';
+
     const maxWidth = parseOptionalPositiveDimension(elements.textOverlayMaxWidth, 'text box width');
     if (maxWidth === null) {
       return;
@@ -720,6 +724,7 @@ export function createEditApp() {
       y,
       text,
       font_size: fontSize,
+      color,
       opacity
     };
 
@@ -727,7 +732,12 @@ export function createEditApp() {
       op.max_width = maxWidth;
     }
 
-    await applySingleOperation(op, [], elements.addTextOverlayOp);
+    const applied = await applySingleOperation(op, [], elements.addTextOverlayOp);
+
+    if (applied && elements.textOverlayClearAfterApply?.checked) {
+      elements.textOverlayText.value = '';
+      elements.textOverlayText.focus();
+    }
   }
 
   async function addImageOverlayOperation() {

@@ -376,6 +376,8 @@ def _apply_overlay_text(
     if opacity < 0 or opacity > 1:
         raise ValueError("overlay_text opacity must be between 0 and 1")
 
+    color = _normalize_hex_color(str(op.get("color", "#000000")))
+
     max_width: float | None = None
     raw_max_width = op.get("max_width")
     if raw_max_width is not None and raw_max_width != "":
@@ -414,6 +416,7 @@ def _apply_overlay_text(
                 y=y,
                 font_size=font_size,
                 opacity=opacity,
+                color=color,
                 max_width=max_width,
             )
         )
@@ -681,6 +684,26 @@ def _to_roman(value: int) -> str:
     return "".join(parts)
 
 
+def _normalize_hex_color(value: str) -> tuple[float, float, float]:
+    color = value.strip() or "#000000"
+
+    if not color.startswith("#"):
+        raise ValueError("overlay_text color must be a hex color such as #000000")
+
+    hex_part = color[1:]
+
+    if len(hex_part) == 3:
+        hex_part = "".join(ch * 2 for ch in hex_part)
+
+    if len(hex_part) != 6 or any(ch not in "0123456789abcdefABCDEF" for ch in hex_part):
+        raise ValueError("overlay_text color must be a hex color such as #000000")
+
+    red = int(hex_part[0:2], 16) / 255
+    green = int(hex_part[2:4], 16) / 255
+    blue = int(hex_part[4:6], 16) / 255
+    return red, green, blue
+
+
 def _make_page_number_overlay_pdf(
     page_width: float,
     page_height: float,
@@ -723,12 +746,14 @@ def _make_text_overlay_pdf(
     y: float,
     font_size: int,
     opacity: float,
+    color: tuple[float, float, float],
     max_width: float | None = None,
 ) -> bytes:
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
     font_name = _register_overlay_font()
     c.setFont(font_name, font_size)
+    c.setFillColorRGB(*color)
 
     try:
         c.setFillAlpha(opacity)
