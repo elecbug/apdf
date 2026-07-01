@@ -104,7 +104,7 @@ unit:   PDF point
 origin: bottom-left
 ```
 
-Text and image overlay tools can use coordinates selected by clicking the PDF preview.
+Text and image overlay tools can use coordinates selected by clicking the PDF preview. The image overlay tool can also use a preview drag region to fill X, Y, width, and height.
 
 ## Storage model
 

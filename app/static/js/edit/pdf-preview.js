@@ -87,7 +87,11 @@ export function createPdfPreview(elements, setEditStatus) {
   let currentViewport = null;
   let coordinateLocked = false;
   let lastCoordinate = null;
+  let dragState = null;
+  let selectionBox = null;
+  let suppressNextClick = false;
   const coordinateClickHandlers = [];
+  const coordinateDragHandlers = [];
 
   syncZoomControl();
   bindCoordinateEvents();
@@ -181,7 +185,7 @@ export function createPdfPreview(elements, setEditStatus) {
     elements.previewCoordinateLine.classList.toggle('locked', locked);
   }
 
-  function coordinateFromPointerEvent(event) {
+  function pointerStateFromEvent(event) {
     if (!currentViewport || !targetPdfDocument) {
       return null;
     }
@@ -193,20 +197,34 @@ export function createPdfPreview(elements, setEditStatus) {
       return null;
     }
 
-    const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+    const displayX = event.clientX - rect.left;
+    const displayY = event.clientY - rect.top;
 
-    if (canvasX < 0 || canvasY < 0 || canvasX > canvas.width || canvasY > canvas.height) {
+    if (displayX < 0 || displayY < 0 || displayX > rect.width || displayY > rect.height) {
       return null;
     }
 
+    const canvasX = displayX * (canvas.width / rect.width);
+    const canvasY = displayY * (canvas.height / rect.height);
     const [pdfX, pdfY] = currentViewport.convertToPdfPoint(canvasX, canvasY);
 
     return {
-      page: currentPageNumber,
-      x: pdfX,
-      y: pdfY
+      coordinate: {
+        page: currentPageNumber,
+        x: pdfX,
+        y: pdfY,
+        pageWidth: currentViewport.viewBox[2] - currentViewport.viewBox[0],
+        pageHeight: currentViewport.viewBox[3] - currentViewport.viewBox[1]
+      },
+      displayPoint: {
+        x: displayX,
+        y: displayY
+      }
     };
+  }
+
+  function coordinateFromPointerEvent(event) {
+    return pointerStateFromEvent(event)?.coordinate || null;
   }
 
   function handlePointerMove(event) {
@@ -225,6 +243,12 @@ export function createPdfPreview(elements, setEditStatus) {
   }
 
   function handlePointerClick(event) {
+    if (suppressNextClick) {
+      suppressNextClick = false;
+      event.preventDefault();
+      return;
+    }
+
     const coordinate = coordinateFromPointerEvent(event);
 
     if (!coordinate) {
@@ -262,7 +286,183 @@ export function createPdfPreview(elements, setEditStatus) {
     };
   }
 
+  function notifyCoordinateDrag(selection) {
+    coordinateDragHandlers.forEach((handler) => {
+      try {
+        handler({
+          page: selection.page,
+          start: {...selection.start},
+          end: {...selection.end}
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }
+
+  function onCoordinateDrag(handler) {
+    if (typeof handler !== 'function') {
+      return () => {};
+    }
+
+    coordinateDragHandlers.push(handler);
+
+    return () => {
+      const index = coordinateDragHandlers.indexOf(handler);
+      if (index >= 0) {
+        coordinateDragHandlers.splice(index, 1);
+      }
+    };
+  }
+
+  function ensureSelectionBox() {
+    if (selectionBox) {
+      return selectionBox;
+    }
+
+    selectionBox = document.createElement('div');
+    selectionBox.className = 'pdf-drag-selection-box';
+    selectionBox.hidden = true;
+    elements.pdfPreviewBox.appendChild(selectionBox);
+
+    return selectionBox;
+  }
+
+  function hideSelectionBox() {
+    if (selectionBox) {
+      selectionBox.hidden = true;
+    }
+
+    elements.pdfPreviewBox.classList.remove('is-selecting-region');
+  }
+
+  function updateSelectionBox(startDisplayPoint, endDisplayPoint) {
+    const box = ensureSelectionBox();
+    const canvas = elements.pdfCanvas;
+    const left = canvas.offsetLeft + Math.min(startDisplayPoint.x, endDisplayPoint.x);
+    const top = canvas.offsetTop + Math.min(startDisplayPoint.y, endDisplayPoint.y);
+    const width = Math.abs(endDisplayPoint.x - startDisplayPoint.x);
+    const height = Math.abs(endDisplayPoint.y - startDisplayPoint.y);
+
+    box.style.left = `${left}px`;
+    box.style.top = `${top}px`;
+    box.style.width = `${width}px`;
+    box.style.height = `${height}px`;
+    box.hidden = false;
+    elements.pdfPreviewBox.classList.add('is-selecting-region');
+  }
+
+  function clearDragState() {
+    if (dragState && elements.pdfCanvas.releasePointerCapture) {
+      try {
+        elements.pdfCanvas.releasePointerCapture(dragState.pointerId);
+      } catch {
+        // The pointer may already have been released by the browser.
+      }
+    }
+
+    dragState = null;
+    hideSelectionBox();
+  }
+
+  function handlePointerDown(event) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    const state = pointerStateFromEvent(event);
+
+    if (!state) {
+      return;
+    }
+
+    dragState = {
+      pointerId: event.pointerId,
+      startCoordinate: state.coordinate,
+      startDisplayPoint: state.displayPoint,
+      lastCoordinate: state.coordinate,
+      lastDisplayPoint: state.displayPoint,
+      dragging: false
+    };
+
+    if (elements.pdfCanvas.setPointerCapture) {
+      try {
+        elements.pdfCanvas.setPointerCapture(event.pointerId);
+      } catch {
+        // Pointer capture is a convenience, not a hard requirement.
+      }
+    }
+  }
+
+  function handlePointerDragMove(event) {
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const state = pointerStateFromEvent(event);
+
+    if (!state || state.coordinate.page !== dragState.startCoordinate.page) {
+      return;
+    }
+
+    dragState.lastCoordinate = state.coordinate;
+    dragState.lastDisplayPoint = state.displayPoint;
+
+    const dx = state.displayPoint.x - dragState.startDisplayPoint.x;
+    const dy = state.displayPoint.y - dragState.startDisplayPoint.y;
+    const distance = Math.hypot(dx, dy);
+
+    if (!dragState.dragging && distance < 4) {
+      return;
+    }
+
+    dragState.dragging = true;
+    coordinateLocked = false;
+    lastCoordinate = state.coordinate;
+    setCoordinateLine(state.coordinate, 'Drag');
+    updateSelectionBox(dragState.startDisplayPoint, state.displayPoint);
+    event.preventDefault();
+  }
+
+  function handlePointerUp(event) {
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const state = pointerStateFromEvent(event);
+    const wasDragging = dragState.dragging;
+    const startCoordinate = dragState.startCoordinate;
+    const endCoordinate = state?.coordinate || dragState.lastCoordinate;
+
+    clearDragState();
+
+    if (!wasDragging || !endCoordinate || endCoordinate.page !== startCoordinate.page) {
+      return;
+    }
+
+    suppressNextClick = true;
+    coordinateLocked = true;
+    lastCoordinate = endCoordinate;
+    setCoordinateLine(endCoordinate, 'Drag end', true);
+    notifyCoordinateDrag({
+      page: startCoordinate.page,
+      start: startCoordinate,
+      end: endCoordinate
+    });
+    event.preventDefault();
+  }
+
+  function handlePointerCancel(event) {
+    if (dragState && dragState.pointerId === event.pointerId) {
+      clearDragState();
+    }
+  }
+
   function handlePointerLeave() {
+    if (dragState) {
+      return;
+    }
+
     if (coordinateLocked && lastCoordinate) {
       coordinateLocked = false;
       setCoordinateLine(lastCoordinate, 'Last');
@@ -281,7 +481,11 @@ export function createPdfPreview(elements, setEditStatus) {
       return;
     }
 
+    elements.pdfCanvas.addEventListener('pointerdown', handlePointerDown);
     elements.pdfCanvas.addEventListener('pointermove', handlePointerMove);
+    elements.pdfCanvas.addEventListener('pointermove', handlePointerDragMove);
+    elements.pdfCanvas.addEventListener('pointerup', handlePointerUp);
+    elements.pdfCanvas.addEventListener('pointercancel', handlePointerCancel);
     elements.pdfCanvas.addEventListener('click', handlePointerClick);
     elements.pdfCanvas.addEventListener('pointerleave', handlePointerLeave);
   }
@@ -409,6 +613,7 @@ export function createPdfPreview(elements, setEditStatus) {
     zoomIn,
     zoomOut,
     onCoordinateClick,
+    onCoordinateDrag,
     getLastCoordinate: () => lastCoordinate ? {...lastCoordinate} : null,
     getCurrentPageNumber: () => currentPageNumber,
     getTargetPdfFile: () => targetPdfFile,

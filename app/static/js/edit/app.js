@@ -510,6 +510,48 @@ export function createEditApp() {
     }
   }
 
+  function formatPointValue(value) {
+    return Number.isFinite(value) ? Math.max(0, value).toFixed(1) : '0.0';
+  }
+
+  function clampRectangleToPage(rectangle, pageWidth, pageHeight) {
+    let x = rectangle.x;
+    let y = rectangle.y;
+    let width = rectangle.width;
+    let height = rectangle.height;
+
+    if (Number.isFinite(pageWidth) && pageWidth > 0) {
+      width = Math.min(width, pageWidth);
+      x = Math.min(Math.max(x, 0), Math.max(0, pageWidth - width));
+    } else {
+      x = Math.max(0, x);
+    }
+
+    if (Number.isFinite(pageHeight) && pageHeight > 0) {
+      height = Math.min(height, pageHeight);
+      y = Math.min(Math.max(y, 0), Math.max(0, pageHeight - height));
+    } else {
+      y = Math.max(0, y);
+    }
+
+    return { x, y, width, height };
+  }
+
+  function getImageOverlayRatioForSizing() {
+    if (imageOverlayRatio) {
+      return imageOverlayRatio;
+    }
+
+    const currentWidth = Number.parseFloat(elements.imageOverlayWidth.value);
+    const currentHeight = Number.parseFloat(elements.imageOverlayHeight.value);
+
+    if (Number.isFinite(currentWidth) && currentWidth > 0 && Number.isFinite(currentHeight) && currentHeight > 0) {
+      return currentHeight / currentWidth;
+    }
+
+    return null;
+  }
+
   function updateImageOverlayCoordinate(coordinate) {
     if (!coordinate) {
       return;
@@ -525,6 +567,59 @@ export function createEditApp() {
     }
   }
 
+  function updateImageOverlayRectangle(selection) {
+    if (!selection || !selection.start || !selection.end) {
+      return;
+    }
+
+    if (selection.start.page !== selection.end.page) {
+      return;
+    }
+
+    const dx = selection.end.x - selection.start.x;
+    const dy = selection.end.y - selection.start.y;
+    let width = Math.abs(dx);
+    let height = Math.abs(dy);
+
+    if (width < 0.1 || height < 0.1) {
+      return;
+    }
+
+    let x;
+    let y;
+
+    const lockedRatio = elements.imageOverlayLockRatio.checked
+      ? getImageOverlayRatioForSizing()
+      : null;
+
+    if (lockedRatio) {
+      height = width * lockedRatio;
+      x = dx >= 0 ? selection.start.x : selection.start.x - width;
+      y = dy >= 0 ? selection.start.y : selection.start.y - height;
+    } else {
+      x = Math.min(selection.start.x, selection.end.x);
+      y = Math.min(selection.start.y, selection.end.y);
+    }
+
+    const pageWidth = selection.start.pageWidth || selection.end.pageWidth;
+    const pageHeight = selection.start.pageHeight || selection.end.pageHeight;
+    const rectangle = clampRectangleToPage({ x, y, width, height }, pageWidth, pageHeight);
+
+    elements.imageOverlayPage.value = String(selection.page);
+    elements.imageOverlayX.value = formatPointValue(rectangle.x);
+    elements.imageOverlayY.value = formatPointValue(rectangle.y);
+    elements.imageOverlayWidth.value = formatPointValue(rectangle.width);
+    elements.imageOverlayHeight.value = formatPointValue(rectangle.height);
+
+    if (elements.imageOverlayCoordinateHint) {
+      const ratioText = elements.imageOverlayLockRatio.checked
+        ? ' Width-driven ratio lock applied.'
+        : '';
+      elements.imageOverlayCoordinateHint.textContent = `Selected page ${selection.page}, x ${rectangle.x.toFixed(1)} pt, y ${rectangle.y.toFixed(1)} pt, ${rectangle.width.toFixed(1)} × ${rectangle.height.toFixed(1)} pt.${ratioText}`;
+      elements.imageOverlayCoordinateHint.classList.add('selected');
+    }
+  }
+
   function handlePreviewCoordinateClick(coordinate) {
     if (currentTool === 'text') {
       updateTextOverlayCoordinate(coordinate);
@@ -534,6 +629,14 @@ export function createEditApp() {
     if (currentTool === 'imageOverlay') {
       updateImageOverlayCoordinate(coordinate);
     }
+  }
+
+  function handlePreviewCoordinateDrag(selection) {
+    if (currentTool !== 'imageOverlay') {
+      return;
+    }
+
+    updateImageOverlayRectangle(selection);
   }
 
   function parsePositiveNumber(inputElement, label) {
@@ -849,6 +952,7 @@ export function createEditApp() {
       preview.setZoom(elements.previewZoomSelect.value);
     });
     preview.onCoordinateClick(handlePreviewCoordinateClick);
+    preview.onCoordinateDrag(handlePreviewCoordinateDrag);
 
     elements.editToolButtons.forEach((button) => {
       button.addEventListener('click', () => {
