@@ -510,46 +510,23 @@ export function createEditApp() {
     }
   }
 
-  function formatPointValue(value) {
-    return Number.isFinite(value) ? Math.max(0, value).toFixed(1) : '0.0';
-  }
-
-  function clampRectangleToPage(rectangle, pageWidth, pageHeight) {
-    let x = rectangle.x;
-    let y = rectangle.y;
-    let width = rectangle.width;
-    let height = rectangle.height;
-
-    if (Number.isFinite(pageWidth) && pageWidth > 0) {
-      width = Math.min(width, pageWidth);
-      x = Math.min(Math.max(x, 0), Math.max(0, pageWidth - width));
-    } else {
-      x = Math.max(0, x);
+  function updateTextOverlayRegion(region) {
+    if (!region || region.width <= 0) {
+      return;
     }
 
-    if (Number.isFinite(pageHeight) && pageHeight > 0) {
-      height = Math.min(height, pageHeight);
-      y = Math.min(Math.max(y, 0), Math.max(0, pageHeight - height));
-    } else {
-      y = Math.max(0, y);
+    elements.textOverlayPage.value = String(region.page);
+    elements.textOverlayX.value = region.x.toFixed(1);
+    elements.textOverlayY.value = region.topY.toFixed(1);
+
+    if (elements.textOverlayMaxWidth) {
+      elements.textOverlayMaxWidth.value = region.width.toFixed(1);
     }
 
-    return { x, y, width, height };
-  }
-
-  function getImageOverlayRatioForSizing() {
-    if (imageOverlayRatio) {
-      return imageOverlayRatio;
+    if (elements.textOverlayCoordinateHint) {
+      elements.textOverlayCoordinateHint.textContent = `Selected text box on page ${region.page}: x ${region.x.toFixed(1)} pt, y ${region.topY.toFixed(1)} pt, width ${region.width.toFixed(1)} pt.`;
+      elements.textOverlayCoordinateHint.classList.add('selected');
     }
-
-    const currentWidth = Number.parseFloat(elements.imageOverlayWidth.value);
-    const currentHeight = Number.parseFloat(elements.imageOverlayHeight.value);
-
-    if (Number.isFinite(currentWidth) && currentWidth > 0 && Number.isFinite(currentHeight) && currentHeight > 0) {
-      return currentHeight / currentWidth;
-    }
-
-    return null;
   }
 
   function updateImageOverlayCoordinate(coordinate) {
@@ -567,55 +544,44 @@ export function createEditApp() {
     }
   }
 
-  function updateImageOverlayRectangle(selection) {
-    if (!selection || !selection.start || !selection.end) {
+  function getImageOverlayRatioFallback() {
+    if (imageOverlayRatio && Number.isFinite(imageOverlayRatio) && imageOverlayRatio > 0) {
+      return imageOverlayRatio;
+    }
+
+    const width = Number.parseFloat(elements.imageOverlayWidth.value);
+    const height = Number.parseFloat(elements.imageOverlayHeight.value);
+
+    if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+      return height / width;
+    }
+
+    return null;
+  }
+
+  function updateImageOverlayRegion(region) {
+    if (!region || region.width <= 0 || region.height <= 0) {
       return;
     }
 
-    if (selection.start.page !== selection.end.page) {
-      return;
+    let width = region.width;
+    let height = region.height;
+
+    if (elements.imageOverlayLockRatio.checked) {
+      const ratio = getImageOverlayRatioFallback();
+      if (ratio) {
+        height = width * ratio;
+      }
     }
 
-    const dx = selection.end.x - selection.start.x;
-    const dy = selection.end.y - selection.start.y;
-    let width = Math.abs(dx);
-    let height = Math.abs(dy);
-
-    if (width < 0.1 || height < 0.1) {
-      return;
-    }
-
-    let x;
-    let y;
-
-    const lockedRatio = elements.imageOverlayLockRatio.checked
-      ? getImageOverlayRatioForSizing()
-      : null;
-
-    if (lockedRatio) {
-      height = width * lockedRatio;
-      x = dx >= 0 ? selection.start.x : selection.start.x - width;
-      y = dy >= 0 ? selection.start.y : selection.start.y - height;
-    } else {
-      x = Math.min(selection.start.x, selection.end.x);
-      y = Math.min(selection.start.y, selection.end.y);
-    }
-
-    const pageWidth = selection.start.pageWidth || selection.end.pageWidth;
-    const pageHeight = selection.start.pageHeight || selection.end.pageHeight;
-    const rectangle = clampRectangleToPage({ x, y, width, height }, pageWidth, pageHeight);
-
-    elements.imageOverlayPage.value = String(selection.page);
-    elements.imageOverlayX.value = formatPointValue(rectangle.x);
-    elements.imageOverlayY.value = formatPointValue(rectangle.y);
-    elements.imageOverlayWidth.value = formatPointValue(rectangle.width);
-    elements.imageOverlayHeight.value = formatPointValue(rectangle.height);
+    elements.imageOverlayPage.value = String(region.page);
+    elements.imageOverlayX.value = region.x.toFixed(1);
+    elements.imageOverlayY.value = region.y.toFixed(1);
+    elements.imageOverlayWidth.value = width.toFixed(1);
+    elements.imageOverlayHeight.value = height.toFixed(1);
 
     if (elements.imageOverlayCoordinateHint) {
-      const ratioText = elements.imageOverlayLockRatio.checked
-        ? ' Width-driven ratio lock applied.'
-        : '';
-      elements.imageOverlayCoordinateHint.textContent = `Selected page ${selection.page}, x ${rectangle.x.toFixed(1)} pt, y ${rectangle.y.toFixed(1)} pt, ${rectangle.width.toFixed(1)} × ${rectangle.height.toFixed(1)} pt.${ratioText}`;
+      elements.imageOverlayCoordinateHint.textContent = `Selected image box on page ${region.page}: x ${region.x.toFixed(1)} pt, y ${region.y.toFixed(1)} pt, width ${width.toFixed(1)} pt, height ${height.toFixed(1)} pt.`;
       elements.imageOverlayCoordinateHint.classList.add('selected');
     }
   }
@@ -631,12 +597,15 @@ export function createEditApp() {
     }
   }
 
-  function handlePreviewCoordinateDrag(selection) {
-    if (currentTool !== 'imageOverlay') {
+  function handlePreviewRegionSelect(region) {
+    if (currentTool === 'text') {
+      updateTextOverlayRegion(region);
       return;
     }
 
-    updateImageOverlayRectangle(selection);
+    if (currentTool === 'imageOverlay') {
+      updateImageOverlayRegion(region);
+    }
   }
 
   function parsePositiveNumber(inputElement, label) {
@@ -652,6 +621,23 @@ export function createEditApp() {
 
   function parsePositiveDimension(inputElement, label) {
     const value = Number.parseFloat(inputElement.value);
+
+    if (!Number.isFinite(value) || value <= 0) {
+      alert(`Enter a valid ${label}.`);
+      return null;
+    }
+
+    return value;
+  }
+
+  function parseOptionalPositiveDimension(inputElement, label) {
+    const raw = inputElement.value.trim();
+
+    if (!raw) {
+      return undefined;
+    }
+
+    const value = Number.parseFloat(raw);
 
     if (!Number.isFinite(value) || value <= 0) {
       alert(`Enter a valid ${label}.`);
@@ -722,7 +708,12 @@ export function createEditApp() {
       return;
     }
 
-    await applySingleOperation({
+    const maxWidth = parseOptionalPositiveDimension(elements.textOverlayMaxWidth, 'text box width');
+    if (maxWidth === null) {
+      return;
+    }
+
+    const op = {
       type: 'overlay_text',
       page,
       x,
@@ -730,7 +721,13 @@ export function createEditApp() {
       text,
       font_size: fontSize,
       opacity
-    }, [], elements.addTextOverlayOp);
+    };
+
+    if (maxWidth !== undefined) {
+      op.max_width = maxWidth;
+    }
+
+    await applySingleOperation(op, [], elements.addTextOverlayOp);
   }
 
   async function addImageOverlayOperation() {
@@ -952,7 +949,7 @@ export function createEditApp() {
       preview.setZoom(elements.previewZoomSelect.value);
     });
     preview.onCoordinateClick(handlePreviewCoordinateClick);
-    preview.onCoordinateDrag(handlePreviewCoordinateDrag);
+    preview.onRegionSelect(handlePreviewRegionSelect);
 
     elements.editToolButtons.forEach((button) => {
       button.addEventListener('click', () => {

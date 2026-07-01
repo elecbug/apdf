@@ -18,7 +18,7 @@ It is designed for short-lived internal use, not as a long-term document storage
 
 - Load and preview a PDF with PDF.js by choosing a file or dragging a PDF onto the Edit PDF section.
 - Change preview zoom.
-- Inspect and pin PDF coordinates from the preview.
+- Inspect, pin, or drag-select PDF coordinates from the preview.
 - Apply edit tools immediately.
 - Undo recent edits.
 - Download the latest edited PDF.
@@ -104,7 +104,7 @@ unit:   PDF point
 origin: bottom-left
 ```
 
-Text and image overlay tools can use coordinates selected by clicking the PDF preview. The image overlay tool can also use a preview drag region to fill X, Y, width, and height.
+Text and image overlay tools can use coordinates selected by clicking the PDF preview. Image overlay can also use a dragged preview box for position and size. Text overlay can use a dragged preview box for position and wrap width.
 
 ## Storage model
 

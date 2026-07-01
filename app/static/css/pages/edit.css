@@ -427,17 +427,16 @@
   position: relative;
 }
 
-.pdf-preview-box.is-selecting-region .pdf-canvas {
+.pdf-canvas.is-region-dragging {
   cursor: crosshair;
 }
 
-.pdf-drag-selection-box {
+.pdf-drag-region-overlay {
   position: absolute;
-  z-index: 12;
+  z-index: 10;
   box-sizing: border-box;
   border: 2px dashed var(--accent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.04);
+  border-radius: var(--radius-sm);
+  background: rgba(45, 99, 200, 0.12);
   pointer-events: none;
 }

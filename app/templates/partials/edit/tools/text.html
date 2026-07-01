@@ -1,6 +1,6 @@
 <section id="toolPanelText" class="tool-panel">
   <h3>Add Text</h3>
-  <p>Click the PDF preview to use that page coordinate for the text position.</p>
+  <p>Click the PDF preview to set the text position, or drag a box to set position and wrap width.</p>
 
   <label>
     Text
@@ -25,8 +25,13 @@
   </div>
 
   <p id="textOverlayCoordinateHint" class="tool-hint">
-    Select this tool, then click a PDF preview position to fill page, X, and Y.
+    Select this tool, then click the preview to fill page, X, and Y, or drag a box to fill page, X, Y, and max width.
   </p>
+
+  <label>
+    Max width (pt)
+    <input id="textOverlayMaxWidth" type="number" min="0.1" step="0.1" placeholder="Optional drag width">
+  </label>
 
   <label>
     Font size

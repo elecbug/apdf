@@ -376,6 +376,17 @@ def _apply_overlay_text(
     if opacity < 0 or opacity > 1:
         raise ValueError("overlay_text opacity must be between 0 and 1")
 
+    max_width: float | None = None
+    raw_max_width = op.get("max_width")
+    if raw_max_width is not None and raw_max_width != "":
+        try:
+            max_width = float(raw_max_width)
+        except Exception as exc:
+            raise ValueError("overlay_text max_width must be numeric") from exc
+
+        if max_width <= 0:
+            raise ValueError("overlay_text max_width must be positive")
+
     target_index = page_number - 1
     new_pages = list(pages)
     page = new_pages[target_index]
@@ -385,6 +396,12 @@ def _apply_overlay_text(
         raise ValueError(
             f"overlay_text coordinate out of page bounds: "
             f"x={x}, y={y}, page={page_width}x{page_height}"
+        )
+
+    if max_width is not None and x + max_width > page_width:
+        raise ValueError(
+            f"overlay_text max_width out of page bounds: "
+            f"x={x}, max_width={max_width}, page_width={page_width}"
         )
 
     overlay_reader = PdfReader(
@@ -397,6 +414,7 @@ def _apply_overlay_text(
                 y=y,
                 font_size=font_size,
                 opacity=opacity,
+                max_width=max_width,
             )
         )
     )
@@ -705,6 +723,7 @@ def _make_text_overlay_pdf(
     y: float,
     font_size: int,
     opacity: float,
+    max_width: float | None = None,
 ) -> bytes:
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=(page_width, page_height))
@@ -716,15 +735,70 @@ def _make_text_overlay_pdf(
     except Exception:
         pass
 
+    lines = _wrap_text_lines(
+        text=text,
+        font_name=font_name,
+        font_size=font_size,
+        max_width=max_width,
+    )
+
     draw_y = y
-    for line in text.splitlines():
-        c.drawString(x, draw_y, line)
+    for line in lines:
+        if line:
+            c.drawString(x, draw_y, line)
         draw_y -= font_size * 1.25
 
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer.read()
+
+
+def _wrap_text_lines(
+    text: str,
+    font_name: str,
+    font_size: int,
+    max_width: float | None,
+) -> list[str]:
+    source_lines = text.splitlines() or [""]
+
+    if max_width is None:
+        return source_lines
+
+    wrapped: list[str] = []
+
+    for source_line in source_lines:
+        wrapped.extend(_wrap_text_line(source_line, font_name, font_size, max_width))
+
+    return wrapped
+
+
+def _wrap_text_line(
+    text: str,
+    font_name: str,
+    font_size: int,
+    max_width: float,
+) -> list[str]:
+    if not text:
+        return [""]
+
+    lines: list[str] = []
+    current = ""
+
+    for char in text:
+        candidate = current + char
+
+        if not current or pdfmetrics.stringWidth(candidate, font_name, font_size) <= max_width:
+            current = candidate
+            continue
+
+        lines.append(current.rstrip())
+        current = char.lstrip() if char.isspace() else char
+
+    if current:
+        lines.append(current.rstrip())
+
+    return lines or [""]
 
 
 def _make_image_overlay_pdf(
