@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -839,7 +840,11 @@ def _draw_styled_text_line(
     c.translate(x, y)
 
     if italic:
-        c.skew(12, 0)
+        # Synthetic italic should shear glyphs along the x-axis while keeping
+        # the text baseline fixed. canvas.skew(12, 0) changes the y-axis as
+        # text advances, which makes the text appear to climb upward.
+        shear = math.tan(math.radians(12))
+        c.transform(1, 0, shear, 1, 0, 0)
 
     c.drawString(0, 0, line)
 

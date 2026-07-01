@@ -690,7 +690,6 @@ export function createEditApp() {
     }
 
     setTextStyleActive(button, !isTextStyleActive(button));
-    elements.textOverlayText?.focus();
   }
 
   function bindTextStyleButton(button) {
@@ -698,7 +697,12 @@ export function createEditApp() {
       return;
     }
 
-    button.addEventListener('click', () => {
+    button.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+    });
+
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
       toggleTextStyle(button);
     });
   }
