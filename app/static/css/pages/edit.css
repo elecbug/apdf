@@ -262,6 +262,51 @@
   padding: 4px 6px;
 }
 
+.text-style-field {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.text-style-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.text-style-toggle {
+  width: 42px;
+  min-height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--secondary-bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.text-style-toggle.active,
+.text-style-toggle[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+.underline-sample {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.tool-hint.compact {
+  padding: 7px 9px;
+  font-size: 11px;
+}
+
 .edit-detail-actions {
   flex-shrink: 0;
   display: grid;

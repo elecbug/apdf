@@ -377,6 +377,9 @@ def _apply_overlay_text(
         raise ValueError("overlay_text opacity must be between 0 and 1")
 
     color = _normalize_hex_color(str(op.get("color", "#000000")))
+    bold = _coerce_bool(op.get("bold", False), "overlay_text bold")
+    italic = _coerce_bool(op.get("italic", False), "overlay_text italic")
+    underline = _coerce_bool(op.get("underline", False), "overlay_text underline")
 
     max_width: float | None = None
     raw_max_width = op.get("max_width")
@@ -417,6 +420,9 @@ def _apply_overlay_text(
                 font_size=font_size,
                 opacity=opacity,
                 color=color,
+                bold=bold,
+                italic=italic,
+                underline=underline,
                 max_width=max_width,
             )
         )
@@ -704,6 +710,25 @@ def _normalize_hex_color(value: str) -> tuple[float, float, float]:
     return red, green, blue
 
 
+def _coerce_bool(value: Any, label: str) -> bool:
+    if isinstance(value, bool):
+        return value
+
+    if value is None:
+        return False
+
+    if isinstance(value, (int, float)):
+        return bool(value)
+
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "on"}:
+        return True
+    if text in {"0", "false", "no", "off", ""}:
+        return False
+
+    raise ValueError(f"{label} must be boolean")
+
+
 def _make_page_number_overlay_pdf(
     page_width: float,
     page_height: float,
@@ -747,6 +772,9 @@ def _make_text_overlay_pdf(
     font_size: int,
     opacity: float,
     color: tuple[float, float, float],
+    bold: bool = False,
+    italic: bool = False,
+    underline: bool = False,
     max_width: float | None = None,
 ) -> bytes:
     buffer = io.BytesIO()
@@ -770,13 +798,70 @@ def _make_text_overlay_pdf(
     draw_y = y
     for line in lines:
         if line:
-            c.drawString(x, draw_y, line)
+            _draw_styled_text_line(
+                c,
+                line=line,
+                x=x,
+                y=draw_y,
+                font_name=font_name,
+                font_size=font_size,
+                color=color,
+                opacity=opacity,
+                bold=bold,
+                italic=italic,
+                underline=underline,
+            )
         draw_y -= font_size * 1.25
 
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer.read()
+
+
+def _draw_styled_text_line(
+    c: canvas.Canvas,
+    *,
+    line: str,
+    x: float,
+    y: float,
+    font_name: str,
+    font_size: int,
+    color: tuple[float, float, float],
+    opacity: float,
+    bold: bool,
+    italic: bool,
+    underline: bool,
+) -> None:
+    bold_offset = max(0.25, font_size * 0.025) if bold else 0.0
+
+    c.saveState()
+    c.translate(x, y)
+
+    if italic:
+        c.skew(12, 0)
+
+    c.drawString(0, 0, line)
+
+    if bold:
+        c.drawString(bold_offset, 0, line)
+
+    c.restoreState()
+
+    if underline:
+        text_width = pdfmetrics.stringWidth(line, font_name, font_size) + bold_offset
+        underline_y = y - max(1.0, font_size * 0.12)
+        line_width = max(0.5, font_size * 0.06)
+
+        c.saveState()
+        c.setStrokeColorRGB(*color)
+        try:
+            c.setStrokeAlpha(opacity)
+        except Exception:
+            pass
+        c.setLineWidth(line_width)
+        c.line(x, underline_y, x + text_width, underline_y)
+        c.restoreState()
 
 
 def _wrap_text_lines(

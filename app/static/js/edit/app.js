@@ -671,6 +671,69 @@ export function createEditApp() {
     return value;
   }
 
+  function isTextStyleActive(button) {
+    return Boolean(button) && button.getAttribute('aria-pressed') === 'true';
+  }
+
+  function setTextStyleActive(button, active) {
+    if (!button) {
+      return;
+    }
+
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  }
+
+  function toggleTextStyle(button) {
+    if (!button) {
+      return;
+    }
+
+    setTextStyleActive(button, !isTextStyleActive(button));
+    elements.textOverlayText?.focus();
+  }
+
+  function bindTextStyleButton(button) {
+    if (!button) {
+      return;
+    }
+
+    button.addEventListener('click', () => {
+      toggleTextStyle(button);
+    });
+  }
+
+  function bindTextOverlayShortcuts() {
+    if (!elements.textOverlayText) {
+      return;
+    }
+
+    elements.textOverlayText.addEventListener('keydown', (event) => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      if (key === 'b') {
+        event.preventDefault();
+        toggleTextStyle(elements.textOverlayBold);
+        return;
+      }
+
+      if (key === 'i') {
+        event.preventDefault();
+        toggleTextStyle(elements.textOverlayItalic);
+        return;
+      }
+
+      if (key === 'u') {
+        event.preventDefault();
+        toggleTextStyle(elements.textOverlayUnderline);
+      }
+    });
+  }
+
   async function addTextOverlayOperation() {
     if (!preview.requireTargetPdf()) {
       return;
@@ -725,6 +788,9 @@ export function createEditApp() {
       text,
       font_size: fontSize,
       color,
+      bold: isTextStyleActive(elements.textOverlayBold),
+      italic: isTextStyleActive(elements.textOverlayItalic),
+      underline: isTextStyleActive(elements.textOverlayUnderline),
       opacity
     };
 
@@ -983,6 +1049,10 @@ export function createEditApp() {
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
     elements.appendPdfFile.addEventListener('change', updateSelectedAppendPdfName);
     elements.imageOverlayFile.addEventListener('change', updateSelectedImageOverlayName);
+    bindTextStyleButton(elements.textOverlayBold);
+    bindTextStyleButton(elements.textOverlayItalic);
+    bindTextStyleButton(elements.textOverlayUnderline);
+    bindTextOverlayShortcuts();
     elements.imageOverlayWidth.addEventListener('input', syncImageOverlayHeightFromWidth);
     elements.imageOverlayHeight.addEventListener('input', syncImageOverlayWidthFromHeight);
     elements.imageOverlayLockRatio.addEventListener('change', syncImageOverlayHeightFromWidth);

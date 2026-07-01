@@ -43,6 +43,16 @@
     <input id="textOverlayColor" type="color" value="#000000">
   </label>
 
+  <div class="text-style-field">
+    <span>Text style</span>
+    <div class="text-style-buttons" role="group" aria-label="Text style">
+      <button type="button" id="textOverlayBold" class="text-style-toggle" aria-pressed="false" aria-label="Bold, Ctrl+B"><strong>B</strong></button>
+      <button type="button" id="textOverlayItalic" class="text-style-toggle" aria-pressed="false" aria-label="Italic, Ctrl+I"><em>I</em></button>
+      <button type="button" id="textOverlayUnderline" class="text-style-toggle" aria-pressed="false" aria-label="Underline, Ctrl+U"><span class="underline-sample">U</span></button>
+    </div>
+    <p class="tool-hint compact">Focus the text box and press Ctrl+B, Ctrl+I, or Ctrl+U to toggle style.</p>
+  </div>
+
   <label>
     Opacity
     <input id="textOverlayOpacity" type="number" min="0" max="1" step="0.05" value="1">

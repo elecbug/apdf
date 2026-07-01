@@ -31,7 +31,7 @@ Current edit tools:
 - Rotate pages
 - Delete pages
 - Move pages
-- Add text overlay with optional wrap width and color
+- Add text overlay with optional wrap width, color, and B/I/U styling
 - Add image overlay
 
 ## Run
