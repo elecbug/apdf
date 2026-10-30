@@ -31,6 +31,7 @@ Current edit tools:
 - Rotate pages
 - Delete pages
 - Move pages
+- Add page numbers
 - Add text overlay with optional wrap width, color, and B/I/U styling
 - Add image overlay
 
@@ -156,24 +157,29 @@ fonts/NotoSansCJKkr-Regular.otf
 
 ## Tool icons
 
-Tool icons can be placed under:
+The nine Edit tool icons are stored under:
 
 ```text
 app/static/icons/
 ```
 
-Recommended filenames:
+Filenames:
 
 ```text
 tool-blank.png
 tool-image-page.png
-tool-append.png        # optional; current UI may reuse another document icon
+tool-append.png
 tool-rotate.png
+tool-page-number.png
 tool-delete.png
 tool-move.png
 tool-text.png
 tool-image-overlay.png
 ```
+
+The set uses transparent 192×192 PNGs, displayed at 48×48, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other eight icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.
+
+The exact generation prompts and delivery settings are saved in [docs/design/edit-tool-icons.json](docs/design/edit-tool-icons.json). See [docs/design/edit-tools-preview.png](docs/design/edit-tools-preview.png) for the complete set on normal and selected backgrounds.
 
 ## PDF.js
 
