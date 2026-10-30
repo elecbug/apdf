@@ -4,17 +4,19 @@ export function createSourceOrderStorage(clientId) {
   return {
     save(sources) {
       const sourceIds = sources.map((source) => source.source_id);
-      localStorage.setItem(storageKey, JSON.stringify(sourceIds));
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(sourceIds));
+      } catch {
+        // Source editing still works when browser storage is unavailable.
+      }
     },
 
     apply(sources) {
-      const raw = localStorage.getItem(storageKey);
-
-      if (!raw) {
-        return sources;
-      }
-
       try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) {
+          return sources;
+        }
         const sourceIds = JSON.parse(raw);
 
         if (!Array.isArray(sourceIds)) {
@@ -46,7 +48,11 @@ export function createSourceOrderStorage(clientId) {
     },
 
     clear() {
-      localStorage.removeItem(storageKey);
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // There is no persisted order to clear when storage is unavailable.
+      }
     }
   };
 }

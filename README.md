@@ -105,7 +105,11 @@ unit:   PDF point
 origin: bottom-left
 ```
 
+Coordinates are relative to the visible page after applying its CropBox and rotation. Text, images, page numbers, and the reference size for inserted pages use this same visible area.
+
 Text and image overlay tools can use coordinates selected by clicking the PDF preview. Image overlay can also use a dragged preview box for position and size. Text overlay can use a dragged preview box for position and wrap width.
+
+PDF loading, edits, and Undo run one at a time. A failed preview load preserves the previously opened document. Downloads use the PDF already loaded in the browser, so an open edited document remains downloadable after its server-side job expires.
 
 ## Storage model
 

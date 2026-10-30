@@ -8,6 +8,8 @@ services:
       - ./data:/app/data
       - ./fonts:/app/fonts:ro
     restart: unless-stopped
+    networks:
+      - apdf-net
     environment:
       APDF_JOB_EXPIRE_SECONDS: "7200"
       APDF_MAX_INLINE_BYTES: "10485760"

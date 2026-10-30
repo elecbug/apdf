@@ -1,9 +1,9 @@
 import { apiJson } from '../shared/api.js';
-import { getOrCreateClientId } from '../shared/client-id.js';
+import { getOrCreateClientId } from '../shared/client-id.js?v=2';
 import { clampInput, normalizePositiveInt } from '../shared/input.js';
 import { getAssembleElements } from './dom.js';
 import { renderSources } from './render.js';
-import { createSourceOrderStorage } from './storage.js';
+import { createSourceOrderStorage } from './storage.js?v=2';
 
 export function createAssembleApp() {
   const elements = getAssembleElements();
@@ -11,6 +11,15 @@ export function createAssembleApp() {
   const sourceOrderStorage = createSourceOrderStorage(clientId);
 
   let sources = [];
+  let busy = false;
+
+  function setBusy(value) {
+    busy = value;
+    elements.fileInput.disabled = value;
+    elements.buildButton.disabled = value;
+    elements.clearSourcesButton.disabled = value;
+    elements.sourceRows.inert = value;
+  }
 
   function setStatus(message) {
     elements.statusLine.textContent = message;
@@ -77,6 +86,9 @@ export function createAssembleApp() {
   }
 
   async function uploadFiles(fileList) {
+    if (busy) {
+      return;
+    }
     const pdfFiles = getPdfFiles(fileList);
 
     if (pdfFiles.length === 0) {
@@ -95,8 +107,7 @@ export function createAssembleApp() {
       formData.append('files', file);
     }
 
-    elements.fileInput.disabled = true;
-    elements.buildButton.disabled = true;
+    setBusy(true);
     setStatus(`Uploading ${pdfFiles.length} PDF(s)...`);
 
     try {
@@ -114,8 +125,7 @@ export function createAssembleApp() {
       alert(error.message);
       setStatus('Upload failed.');
     } finally {
-      elements.fileInput.disabled = false;
-      elements.buildButton.disabled = false;
+      setBusy(false);
     }
   }
 
@@ -140,6 +150,9 @@ export function createAssembleApp() {
       }
 
       event.preventDefault();
+      if (busy) {
+        return;
+      }
       dragDepth += 1;
       dropZone.classList.add('drag-over');
       setStatus('Drop PDF files to add them to Sources.');
@@ -151,7 +164,7 @@ export function createAssembleApp() {
       }
 
       event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
+      event.dataTransfer.dropEffect = busy ? 'none' : 'copy';
     });
 
     dropZone.addEventListener('dragleave', () => {
@@ -207,6 +220,9 @@ export function createAssembleApp() {
   }
 
   async function handleSourceClick(event) {
+    if (busy) {
+      return;
+    }
     const moveButton = event.target.closest('button.move-source');
     const removeButton = event.target.closest('button.remove-source');
 
@@ -217,6 +233,7 @@ export function createAssembleApp() {
 
     if (removeButton) {
       const sourceId = removeButton.dataset.sourceId;
+      setBusy(true);
 
       try {
         captureSourceRanges();
@@ -228,6 +245,8 @@ export function createAssembleApp() {
         setStatus('Source removed.');
       } catch (error) {
         alert(error.message);
+      } finally {
+        setBusy(false);
       }
     }
   }
@@ -267,6 +286,10 @@ export function createAssembleApp() {
   }
 
   async function clearSources() {
+    if (busy) {
+      return;
+    }
+    setBusy(true);
     try {
       await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
         method: 'DELETE'
@@ -277,17 +300,22 @@ export function createAssembleApp() {
       setStatus('Sources cleared.');
     } catch (error) {
       alert(error.message);
+    } finally {
+      setBusy(false);
     }
   }
 
   async function buildPdf() {
+    if (busy) {
+      return;
+    }
     const plan = buildPlanFromSources();
 
     if (!plan) {
       return;
     }
 
-    elements.buildButton.disabled = true;
+    setBusy(true);
     setStatus('Building PDF...');
 
     try {
@@ -318,7 +346,7 @@ export function createAssembleApp() {
       alert(error.message);
       setStatus('Build failed.');
     } finally {
-      elements.buildButton.disabled = false;
+      setBusy(false);
     }
   }
 
@@ -336,12 +364,15 @@ export function createAssembleApp() {
 
   async function init() {
     bindEvents();
+    setBusy(true);
 
     try {
       await loadSources();
       setStatus(`Session: ${clientId.slice(0, 8)}...`);
     } catch (error) {
       setStatus('Failed to restore sources.');
+    } finally {
+      setBusy(false);
     }
   }
 

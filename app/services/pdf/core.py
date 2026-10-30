@@ -10,9 +10,14 @@ def open_pdf(path: Path) -> PdfReader:
 
     if reader.is_encrypted:
         try:
-            reader.decrypt("")
+            decrypted = reader.decrypt("")
         except Exception as exc:
             raise ValueError("Encrypted PDF is not supported") from exc
+        if not decrypted:
+            raise ValueError("Encrypted PDF is not supported")
+
+    if not reader.pages:
+        raise ValueError("Input PDF has no pages")
 
     return reader
 

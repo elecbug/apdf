@@ -24,13 +24,24 @@ export function generateClientId() {
   return `apdf-${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function getOrCreateClientId() {
-  let clientId = localStorage.getItem('apdf_client_id');
+let sessionClientId = null;
 
-  if (!clientId) {
-    clientId = generateClientId();
-    localStorage.setItem('apdf_client_id', clientId);
+export function getOrCreateClientId() {
+  try {
+    const saved = localStorage.getItem('apdf_client_id');
+    if (saved && /^[a-zA-Z0-9_-]{8,80}$/.test(saved)) {
+      sessionClientId = saved;
+      return saved;
+    }
+  } catch {
+    // Keep a usable session even if the browser blocks persistent storage.
   }
 
-  return clientId;
+  sessionClientId ||= generateClientId();
+  try {
+    localStorage.setItem('apdf_client_id', sessionClientId);
+  } catch {
+    // The in-memory ID remains stable for this page's lifetime.
+  }
+  return sessionClientId;
 }

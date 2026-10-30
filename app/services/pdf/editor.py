@@ -248,7 +248,7 @@ def _apply_page_numbers(
                 )
             )
         )
-        page.merge_page(overlay_reader.pages[0])
+        _merge_visible_overlay(page, overlay_reader.pages[0])
 
     return new_pages
 
@@ -352,11 +352,8 @@ def _apply_overlay_text(
     if not text.strip():
         raise ValueError("overlay_text requires non-empty text")
 
-    try:
-        x = float(op.get("x"))
-        y = float(op.get("y"))
-    except Exception as exc:
-        raise ValueError("overlay_text requires numeric x and y") from exc
+    x = _finite_float(op.get("x"), "overlay_text x")
+    y = _finite_float(op.get("y"), "overlay_text y")
 
     if x < 0 or y < 0:
         raise ValueError("overlay_text coordinates must be non-negative")
@@ -369,10 +366,7 @@ def _apply_overlay_text(
     if font_size < 1 or font_size > 300:
         raise ValueError("overlay_text font_size must be between 1 and 300")
 
-    try:
-        opacity = float(op.get("opacity", 1.0))
-    except Exception as exc:
-        raise ValueError("overlay_text opacity must be numeric") from exc
+    opacity = _finite_float(op.get("opacity", 1.0), "overlay_text opacity")
 
     if opacity < 0 or opacity > 1:
         raise ValueError("overlay_text opacity must be between 0 and 1")
@@ -385,10 +379,7 @@ def _apply_overlay_text(
     max_width: float | None = None
     raw_max_width = op.get("max_width")
     if raw_max_width is not None and raw_max_width != "":
-        try:
-            max_width = float(raw_max_width)
-        except Exception as exc:
-            raise ValueError("overlay_text max_width must be numeric") from exc
+        max_width = _finite_float(raw_max_width, "overlay_text max_width")
 
         if max_width <= 0:
             raise ValueError("overlay_text max_width must be positive")
@@ -428,7 +419,7 @@ def _apply_overlay_text(
             )
         )
     )
-    page.merge_page(overlay_reader.pages[0])
+    _merge_visible_overlay(page, overlay_reader.pages[0])
 
     return new_pages
 
@@ -451,28 +442,19 @@ def _apply_overlay_image(
     if not image_path:
         raise ValueError(f"Image file not found for image_id: {image_id}")
 
-    try:
-        x = float(op.get("x"))
-        y = float(op.get("y"))
-    except Exception as exc:
-        raise ValueError("overlay_image requires numeric x and y") from exc
+    x = _finite_float(op.get("x"), "overlay_image x")
+    y = _finite_float(op.get("y"), "overlay_image y")
 
     if x < 0 or y < 0:
         raise ValueError("overlay_image coordinates must be non-negative")
 
-    try:
-        width = float(op.get("width"))
-        height = float(op.get("height"))
-    except Exception as exc:
-        raise ValueError("overlay_image requires numeric width and height") from exc
+    width = _finite_float(op.get("width"), "overlay_image width")
+    height = _finite_float(op.get("height"), "overlay_image height")
 
     if width <= 0 or height <= 0:
         raise ValueError("overlay_image width and height must be positive")
 
-    try:
-        opacity = float(op.get("opacity", 1.0))
-    except Exception as exc:
-        raise ValueError("overlay_image opacity must be numeric") from exc
+    opacity = _finite_float(op.get("opacity", 1.0), "overlay_image opacity")
 
     if opacity < 0 or opacity > 1:
         raise ValueError("overlay_image opacity must be between 0 and 1")
@@ -502,7 +484,7 @@ def _apply_overlay_image(
             )
         )
     )
-    page.merge_page(overlay_reader.pages[0])
+    _merge_visible_overlay(page, overlay_reader.pages[0])
 
     return new_pages
 
@@ -1036,8 +1018,45 @@ def _resolve_reference_page_size(
     return _page_size(reference_page)
 
 
+def _visible_page_box(page: PageObject) -> tuple[float, float, float, float]:
+    media = page.mediabox
+    crop = page.cropbox
+    left = max(float(media.left), float(crop.left))
+    bottom = max(float(media.bottom), float(crop.bottom))
+    right = min(float(media.right), float(crop.right))
+    top = min(float(media.top), float(crop.top))
+    if right <= left or top <= bottom:
+        return tuple(float(value) for value in media)
+    return left, bottom, right, top
+
+
 def _page_size(page: PageObject) -> tuple[float, float]:
-    return float(page.mediabox.width), float(page.mediabox.height)
+    left, bottom, right, top = _visible_page_box(page)
+    width, height = right - left, top - bottom
+    return (height, width) if page.rotation % 180 else (width, height)
+
+
+def _merge_visible_overlay(page: PageObject, overlay: PageObject) -> None:
+    # Map upright, crop-relative preview coordinates back to the PDF's native
+    # coordinate system without changing its boxes or existing content.
+    left, bottom, right, top = _visible_page_box(page)
+    transforms = {
+        0: (1, 0, 0, 1, left, bottom),
+        90: (0, 1, -1, 0, right, bottom),
+        180: (-1, 0, 0, -1, right, top),
+        270: (0, -1, 1, 0, left, top),
+    }
+    page.merge_transformed_page(overlay, transforms[page.rotation % 360])
+
+
+def _finite_float(value: Any, label: str) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label} must be numeric") from exc
+    if not math.isfinite(result):
+        raise ValueError(f"{label} must be finite")
+    return result
 
 
 def _get_page_number(op: dict[str, Any], total_pages: int) -> int:
@@ -1078,6 +1097,8 @@ def _parse_page_selection(expr: str, total_pages: int) -> list[int]:
                 raise ValueError(f"Invalid page range: {token}")
 
             start_text, end_text = token.split("-", 1)
+            if not start_text.strip() and not end_text.strip():
+                raise ValueError("Invalid page selection")
             start = 1 if not start_text.strip() else int(start_text.strip())
             end = total_pages if not end_text.strip() else int(end_text.strip())
 
@@ -1094,7 +1115,7 @@ def _parse_page_selection(expr: str, total_pages: int) -> list[int]:
             selected.append(page_number - 1)
 
     if not selected:
-        return list(range(total_pages))
+        raise ValueError("Invalid page selection")
 
     return sorted(set(selected))
 

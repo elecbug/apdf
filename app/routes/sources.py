@@ -10,8 +10,8 @@ from app.services.client_store import (
     clear_sources,
     load_sources,
     make_source_meta,
-    register_source,
     remove_source,
+    save_sources,
     touch_client,
 )
 from app.utils.uploads import safe_name, save_upload
@@ -32,6 +32,8 @@ def list_sources(client_id: str):
 @router.post("")
 async def upload_sources(client_id: str, files: Annotated[list[UploadFile], File()]):
     uploaded = []
+    staged_paths = []
+    committed = False
 
     try:
         touch_client(client_id)
@@ -41,6 +43,7 @@ async def upload_sources(client_id: str, files: Annotated[list[UploadFile], File
                 raise HTTPException(400, "Only PDF files are allowed")
 
             source_id, dst = allocate_source_path(client_id)
+            staged_paths.append(dst)
             size = await save_upload(upload, dst)
 
             try:
@@ -50,13 +53,19 @@ async def upload_sources(client_id: str, files: Annotated[list[UploadFile], File
                 raise HTTPException(400, f"Invalid PDF: {upload.filename}") from exc
 
             meta = make_source_meta(source_id, safe_name(upload.filename), size, pages)
-            register_source(client_id, meta)
-            uploaded.append(meta.__dict__)
+            uploaded.append(meta)
 
-        return {"sources": uploaded}
+        # Publish only after every file in this request has been validated.
+        save_sources(client_id, [*load_sources(client_id), *uploaded])
+        committed = True
+        return {"sources": [meta.__dict__ for meta in uploaded]}
 
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    finally:
+        if not committed:
+            for path in staged_paths:
+                path.unlink(missing_ok=True)
 
 
 @router.delete("/{source_id}")

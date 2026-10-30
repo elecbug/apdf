@@ -1,6 +1,6 @@
 import { getEditElements } from './dom.js';
-import { downloadFileObject, downloadFromUrl } from './download.js';
-import { createPdfPreview } from './pdf-preview.js';
+import { downloadFileObject } from './download.js?v=4';
+import { createPdfPreview } from './pdf-preview.js?v=4';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 
 const MAX_UNDO_HISTORY = 20;
@@ -8,8 +8,6 @@ const MAX_UNDO_HISTORY = 20;
 export function createEditApp() {
   const elements = getEditElements();
 
-  let latestDownloadUrl = null;
-  let latestDownloadFilename = null;
   let undoStack = [];
   let currentTool = 'blank';
   let imageOverlayRatio = null;
@@ -45,10 +43,16 @@ export function createEditApp() {
     ].filter(Boolean);
   }
 
-  function setToolActionButtonsDisabled(disabled) {
-    getToolActionButtons().forEach((button) => {
-      button.disabled = disabled;
+  function setBusy(busy) {
+    applying = busy;
+    [...getToolActionButtons(), elements.editPdfFile,
+      elements.prevPageButton, elements.nextPageButton, elements.previewPageInput,
+      elements.zoomOutButton, elements.zoomInButton, elements.previewZoomSelect
+    ].forEach((control) => {
+      control.disabled = busy;
     });
+    updateUndoButton();
+    updateDownloadButton();
   }
 
   function makeUndoSnapshot() {
@@ -60,9 +64,7 @@ export function createEditApp() {
 
     return {
       file: targetPdfFile,
-      pageNumber: preview.getCurrentPageNumber(),
-      downloadUrl: latestDownloadUrl,
-      downloadFilename: latestDownloadFilename
+      pageNumber: preview.getCurrentPageNumber()
     };
   }
 
@@ -92,7 +94,7 @@ export function createEditApp() {
   }
 
   async function loadEditPdfFile(file) {
-    if (!file) {
+    if (!file || applying) {
       return;
     }
 
@@ -103,17 +105,18 @@ export function createEditApp() {
     }
 
     try {
+      setBusy(true);
       setEditStatus('Loading PDF...');
       await preview.loadPdfFromFile(file);
 
-      latestDownloadUrl = null;
-      latestDownloadFilename = null;
       clearUndoHistory();
-      updateDownloadButton();
     } catch (error) {
       console.error(error);
       alert(`Failed to load PDF.\n\n${error?.message || error}`);
       setEditStatus(`Failed to load PDF: ${error?.message || error}`);
+    } finally {
+      elements.editPdfFile.value = '';
+      setBusy(false);
     }
   }
 
@@ -138,6 +141,9 @@ export function createEditApp() {
       }
 
       event.preventDefault();
+      if (applying) {
+        return;
+      }
       dragDepth += 1;
       dropZone.classList.add('drag-over');
       setEditStatus('Drop a PDF file to load it for editing.');
@@ -149,7 +155,7 @@ export function createEditApp() {
       }
 
       event.preventDefault();
-      event.dataTransfer.dropEffect = 'copy';
+      event.dataTransfer.dropEffect = applying ? 'none' : 'copy';
     });
 
     dropZone.addEventListener('dragleave', () => {
@@ -168,6 +174,9 @@ export function createEditApp() {
       event.preventDefault();
       dragDepth = 0;
       dropZone.classList.remove('drag-over');
+      if (applying) {
+        return;
+      }
 
       const pdfFiles = Array.from(event.dataTransfer.files || []).filter(isPdfFile);
 
@@ -209,10 +218,7 @@ export function createEditApp() {
     const originalButtonText = triggerButton ? triggerButton.textContent : null;
 
     try {
-      applying = true;
-      setToolActionButtonsDisabled(true);
-      updateUndoButton();
-      updateDownloadButton();
+      setBusy(true);
 
       if (triggerButton) {
         triggerButton.textContent = 'Applying...';
@@ -259,10 +265,6 @@ export function createEditApp() {
       await preview.loadPdfFromFile(editedFile, { pageNumber: pageBeforeApply });
       pushUndoSnapshot(undoSnapshot);
 
-      latestDownloadUrl = result.download_url;
-      latestDownloadFilename = editedFilename;
-      updateDownloadButton();
-
       setEditStatus(`Applied edit. Current preview: ${editedFilename}`);
       return true;
     } catch (error) {
@@ -271,15 +273,11 @@ export function createEditApp() {
       setEditStatus(`Failed to apply edit: ${error?.message || error}`);
       return false;
     } finally {
-      applying = false;
-      setToolActionButtonsDisabled(false);
+      setBusy(false);
 
       if (triggerButton && originalButtonText !== null) {
         triggerButton.textContent = originalButtonText;
       }
-
-      updateUndoButton();
-      updateDownloadButton();
     }
   }
 
@@ -883,17 +881,10 @@ export function createEditApp() {
     const snapshot = undoStack.pop();
 
     try {
-      applying = true;
-      setToolActionButtonsDisabled(true);
-      updateUndoButton();
-      updateDownloadButton();
+      setBusy(true);
       setEditStatus('Restoring previous preview...');
 
       await preview.loadPdfFromFile(snapshot.file, { pageNumber: snapshot.pageNumber });
-
-      latestDownloadUrl = snapshot.downloadUrl;
-      latestDownloadFilename = snapshot.downloadFilename;
-      updateDownloadButton();
 
       setEditStatus(`Undone. Current preview: ${snapshot.file.name}`);
     } catch (error) {
@@ -902,19 +893,11 @@ export function createEditApp() {
       alert(`Failed to undo.\n\n${error?.message || error}`);
       setEditStatus(`Failed to undo: ${error?.message || error}`);
     } finally {
-      applying = false;
-      setToolActionButtonsDisabled(false);
-      updateUndoButton();
-      updateDownloadButton();
+      setBusy(false);
     }
   }
 
   function downloadEditedPdf() {
-    if (latestDownloadUrl) {
-      downloadFromUrl(latestDownloadUrl, latestDownloadFilename || 'edited.pdf');
-      return;
-    }
-
     const targetPdfFile = preview.getTargetPdfFile();
 
     if (targetPdfFile) {
@@ -978,6 +961,7 @@ export function createEditApp() {
 
   function updateSelectedImageOverlayName() {
     const imageFile = elements.imageOverlayFile.files[0];
+    imageOverlayRatio = null;
 
     if (!imageFile) {
       elements.imageOverlayName.textContent = 'No image selected.';
@@ -999,7 +983,7 @@ export function createEditApp() {
     const image = new Image();
 
     image.onload = () => {
-      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+      if (elements.imageOverlayFile.files[0] === imageFile && image.naturalWidth > 0 && image.naturalHeight > 0) {
         imageOverlayRatio = image.naturalHeight / image.naturalWidth;
         syncImageOverlayHeightFromWidth();
       }
@@ -1008,7 +992,9 @@ export function createEditApp() {
     };
 
     image.onerror = () => {
-      imageOverlayRatio = null;
+      if (elements.imageOverlayFile.files[0] === imageFile) {
+        imageOverlayRatio = null;
+      }
       URL.revokeObjectURL(objectUrl);
     };
 
