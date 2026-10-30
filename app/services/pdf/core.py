@@ -1,8 +1,20 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
+from typing import Any
 
 from pypdf import PdfReader
+
+
+def finite_float(value: Any, label: str) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{label} must be numeric") from exc
+    if not math.isfinite(result):
+        raise ValueError(f"{label} must be finite")
+    return result
 
 
 def open_pdf(path: Path) -> PdfReader:

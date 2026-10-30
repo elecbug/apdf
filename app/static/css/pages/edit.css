@@ -274,6 +274,23 @@
   font-weight: 700;
 }
 
+.shape-paint-fields {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.shape-paint-fields legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .text-style-buttons {
   display: flex;
   gap: 8px;

@@ -34,6 +34,7 @@ Current edit tools:
 - Add page numbers
 - Add text overlay with optional wrap width, color, and B/I/U styling
 - Add image overlay
+- Add circle, rectangle, triangle, pentagon, star, and rounded rectangle shapes with independent fill/border colors and alpha
 
 ## Run
 
@@ -105,11 +106,24 @@ unit:   PDF point
 origin: bottom-left
 ```
 
-Coordinates are relative to the visible page after applying its CropBox and rotation. Text, images, page numbers, and the reference size for inserted pages use this same visible area.
+Coordinates are relative to the visible page after applying its CropBox and rotation. Text, images, shapes, page numbers, and the reference size for inserted pages use this same visible area.
 
 Text and image overlay tools can use coordinates selected by clicking the PDF preview. Image overlay can also use a dragged preview box for position and size. Text overlay can use a dragged preview box for position and wrap width.
 
 PDF loading, edits, and Undo run one at a time. A failed preview load preserves the previously opened document. Downloads use the PDF already loaded in the browser, so an open edited document remains downloadable after its server-side job expires.
+
+Once a PDF is open, or while loading/editing/Undo is in progress, the Edit page requests the browser's leave confirmation before refresh, tab close, or navigation. An empty Edit page does not prompt. The browser controls the confirmation wording.
+
+### Insert shapes
+
+1. Select **Shapes** in Edit Tools and choose Circle, Rectangle, Triangle, Pentagon, Star, or Rounded rectangle.
+2. Drag on the PDF preview to set the shape's page, position, width, and height. Clicking sets only its bottom-left position; the dimensions can also be entered manually.
+3. Set the fill and border colors and their separate alpha values (`0` is transparent; `1` is opaque). Each also has a **Transparent** checkbox. Border width is adjustable; `0` removes it.
+4. Click **Add Shape**. Undo and Download PDF work as for other edit tools.
+
+Circles remain round and centered inside the selected box. Other shapes fit the box. Borders stay inside it, and rounded rectangles use a corner radius proportional to their size. Shapes are stored as PDF vectors. [Example](docs/design/shapes-preview.png).
+
+The `overlay_shape` API operation accepts `shape`, `page`, `x`, `y`, `width`, `height`, `fill_color`, `fill_opacity`, `stroke_color`, `stroke_opacity`, and `stroke_width`. Colors accept `null`, `"transparent"`, or `#RGB`, `#RGBA`, `#RRGGBB`, and `#RRGGBBAA`; an embedded color alpha is multiplied by its separate opacity value.
 
 ## Storage model
 
@@ -161,7 +175,7 @@ fonts/NotoSansCJKkr-Regular.otf
 
 ## Tool icons
 
-The nine Edit tool icons are stored under:
+The ten Edit tool icons are stored under:
 
 ```text
 app/static/icons/
@@ -179,9 +193,10 @@ tool-delete.png
 tool-move.png
 tool-text.png
 tool-image-overlay.png
+tool-shapes.png
 ```
 
-The set uses transparent 192×192 PNGs, displayed at 48×48, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other eight icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.
+The set uses transparent 192×192 PNGs, displayed at 48×48, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.
 
 The exact generation prompts and delivery settings are saved in [docs/design/edit-tool-icons.json](docs/design/edit-tool-icons.json). See [docs/design/edit-tools-preview.png](docs/design/edit-tools-preview.png) for the complete set on normal and selected backgrounds.
 

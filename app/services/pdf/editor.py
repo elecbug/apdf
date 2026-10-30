@@ -16,7 +16,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from app.config import FONTS_DIR
-from app.services.pdf.core import open_pdf
+from app.services.pdf.core import finite_float as _finite_float, open_pdf
+from app.services.pdf.shapes import make_shape_overlay
 
 
 SUPPORTED_EDIT_OPERATION_TYPES = {
@@ -29,6 +30,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "move_pages",
     "overlay_text",
     "overlay_image",
+    "overlay_shape",
 }
 
 
@@ -75,6 +77,9 @@ def apply_edit_operations(
 
         elif op_type == "overlay_image":
             pages = _apply_overlay_image(pages, op, image_paths)
+
+        elif op_type == "overlay_shape":
+            pages = _apply_overlay_shape(pages, op)
 
         else:
             raise ValueError(f"Unsupported edit operation at #{index}: {op_type}")
@@ -486,6 +491,16 @@ def _apply_overlay_image(
     )
     _merge_visible_overlay(page, overlay_reader.pages[0])
 
+    return new_pages
+
+
+def _apply_overlay_shape(pages: list[PageObject], op: dict[str, Any]) -> list[PageObject]:
+    page_number = _get_page_number(op, len(pages))
+    new_pages = list(pages)
+    page = new_pages[page_number - 1]
+    width, height = _page_size(page)
+    overlay = PdfReader(io.BytesIO(make_shape_overlay(width, height, op)))
+    _merge_visible_overlay(page, overlay.pages[0])
     return new_pages
 
 
@@ -1047,16 +1062,6 @@ def _merge_visible_overlay(page: PageObject, overlay: PageObject) -> None:
         270: (0, -1, 1, 0, left, top),
     }
     page.merge_transformed_page(overlay, transforms[page.rotation % 360])
-
-
-def _finite_float(value: Any, label: str) -> float:
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"{label} must be numeric") from exc
-    if not math.isfinite(result):
-        raise ValueError(f"{label} must be finite")
-    return result
 
 
 def _get_page_number(op: dict[str, Any], total_pages: int) -> int:

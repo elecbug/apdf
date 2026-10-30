@@ -311,6 +311,7 @@ class SmokeRunner:
         self.step("POST /edit/apply move_pages", self.check_edit_move_pages)
         self.step("POST /edit/apply overlay_text", self.check_edit_overlay_text)
         self.step("POST /edit/apply overlay_image", self.check_edit_overlay_image)
+        self.step("POST /edit/apply overlay_shape", self.check_edit_overlay_shape)
         self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
         if self.expect_legacy_removed:
@@ -406,6 +407,21 @@ class SmokeRunner:
             "imageOverlayHeight",
             "imageOverlayLockRatio",
             "imageOverlayOpacity",
+            "addShapeOverlayOp",
+            "shapeOverlayType",
+            "shapeOverlayPage",
+            "shapeOverlayX",
+            "shapeOverlayY",
+            "shapeOverlayWidth",
+            "shapeOverlayHeight",
+            "shapeOverlayCoordinateHint",
+            "shapeOverlayFillColor",
+            "shapeOverlayFillOpacity",
+            "shapeOverlayFillTransparent",
+            "shapeOverlayStrokeColor",
+            "shapeOverlayStrokeOpacity",
+            "shapeOverlayStrokeTransparent",
+            "shapeOverlayStrokeWidth",
             "undoEditApply",
             "downloadEditedPdf",
         ]
@@ -423,6 +439,7 @@ class SmokeRunner:
             "move",
             "text",
             "imageOverlay",
+            "shape",
         ]
         missing_tools = [tool for tool in required_tools if f'data-tool="{tool}"' not in html]
         if missing_tools:
@@ -654,6 +671,17 @@ class SmokeRunner:
         )
         return self.format_edit_result(result)
 
+    def check_edit_overlay_shape(self) -> str:
+        operations = [
+            {"type": "overlay_shape", "shape": shape, "page": 1,
+             "x": 36 + index * 48, "y": 36, "width": 40, "height": 40,
+             "fill_color": "transparent" if index == 0 else "#2d63c880",
+             "fill_opacity": 0.5, "stroke_color": "#183b7a",
+             "stroke_opacity": 0.75, "stroke_width": 2}
+            for index, shape in enumerate(("circle", "rectangle", "triangle", "pentagon", "star", "rounded_rectangle"))
+        ]
+        return self.format_edit_result(self.apply_edit(operations, expected_delta=0))
+
     def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
         append_pdf_id = "combo_append_pdf"
@@ -666,6 +694,7 @@ class SmokeRunner:
             {"type": "page_numbers", "start_page": 1, "start_number": 1, "position": "top-alternate-right", "format": "N", "numbering_style": "decimal"},
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo wrapped text", "font_size": 14, "color": "#d62828", "bold": True, "italic": False, "underline": True, "opacity": 0.9, "max_width": 180},
             {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
+            {"type": "overlay_shape", "shape": "star", "page": 1, "x": 180, "y": 108, "width": 36, "height": 36, "fill_color": "#2d63c8", "fill_opacity": 0.5, "stroke_color": None},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]

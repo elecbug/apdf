@@ -27,6 +27,7 @@ SUPPORTED_EDIT_TYPES = {
     "move_pages",
     "overlay_text",
     "overlay_image",
+    "overlay_shape",
 }
 
 

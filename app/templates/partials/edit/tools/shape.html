@@ -1,0 +1,51 @@
+<section id="toolPanelShape" class="tool-panel">
+  <h3>Add Shape</h3>
+  <p>Drag a box on the PDF preview to set position and size, then add the shape.</p>
+
+  <label>
+    Shape
+    <select id="shapeOverlayType">
+      <option value="circle">Circle</option>
+      <option value="rectangle" selected>Rectangle</option>
+      <option value="triangle">Triangle</option>
+      <option value="pentagon">Pentagon</option>
+      <option value="star">Star</option>
+      <option value="rounded_rectangle">Rounded rectangle</option>
+    </select>
+  </label>
+
+  <div class="coordinate-fields">
+    <label>Page <input id="shapeOverlayPage" type="number" min="1" step="1" value="1"></label>
+    <label>X <input id="shapeOverlayX" type="number" min="0" step="0.1" placeholder="Drag preview"></label>
+    <label>Y <input id="shapeOverlayY" type="number" min="0" step="0.1" placeholder="Drag preview"></label>
+  </div>
+
+  <p id="shapeOverlayCoordinateHint" class="tool-hint">Drag on the preview to set page, X, Y, width, and height. You can also click to set the bottom-left position.</p>
+
+  <div class="size-fields">
+    <label>Width (pt) <input id="shapeOverlayWidth" type="number" min="0.1" step="0.1" value="144"></label>
+    <label>Height (pt) <input id="shapeOverlayHeight" type="number" min="0.1" step="0.1" value="96"></label>
+  </div>
+  <p class="tool-hint compact">Circles stay round inside the box. Other shapes fit its width and height.</p>
+
+  <fieldset class="shape-paint-fields">
+    <legend>Fill</legend>
+    <label class="checkbox-label"><input id="shapeOverlayFillTransparent" type="checkbox">Transparent fill</label>
+    <div class="size-fields">
+      <label>Color <input id="shapeOverlayFillColor" type="color" value="#2d63c8"></label>
+      <label>Alpha (0–1) <input id="shapeOverlayFillOpacity" type="number" min="0" max="1" step="0.05" value="0.25"></label>
+    </div>
+  </fieldset>
+
+  <fieldset class="shape-paint-fields">
+    <legend>Border</legend>
+    <label class="checkbox-label"><input id="shapeOverlayStrokeTransparent" type="checkbox">Transparent border</label>
+    <div class="size-fields">
+      <label>Color <input id="shapeOverlayStrokeColor" type="color" value="#183b7a"></label>
+      <label>Alpha (0–1) <input id="shapeOverlayStrokeOpacity" type="number" min="0" max="1" step="0.05" value="1"></label>
+    </div>
+    <label>Width (pt) <input id="shapeOverlayStrokeWidth" type="number" min="0" step="0.1" value="2"></label>
+  </fieldset>
+
+  <button type="button" id="addShapeOverlayOp" class="primary width-full">Add Shape</button>
+</section>

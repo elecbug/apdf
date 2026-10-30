@@ -1,7 +1,8 @@
-import { getEditElements } from './dom.js';
+import { getEditElements } from './dom.js?v=5';
 import { downloadFileObject } from './download.js?v=4';
 import { createPdfPreview } from './pdf-preview.js?v=4';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
+import { createShapeTool } from './shapes.js?v=1';
 
 const MAX_UNDO_HISTORY = 20;
 
@@ -20,6 +21,7 @@ export function createEditApp() {
   }
 
   const preview = createPdfPreview(elements, setEditStatus);
+  const shapeTool = createShapeTool(elements, preview, applySingleOperation);
 
   function updateUndoButton() {
     elements.undoEditApply.disabled = applying || undoStack.length === 0;
@@ -39,7 +41,8 @@ export function createEditApp() {
       elements.addDeletePagesOp,
       elements.addMovePagesOp,
       elements.addTextOverlayOp,
-      elements.addImageOverlayOp
+      elements.addImageOverlayOp,
+      elements.addShapeOverlayOp
     ].filter(Boolean);
   }
 
@@ -595,6 +598,9 @@ export function createEditApp() {
     if (currentTool === 'imageOverlay') {
       updateImageOverlayCoordinate(coordinate);
     }
+    if (currentTool === 'shape') {
+      shapeTool.updateCoordinate(coordinate);
+    }
   }
 
   function handlePreviewRegionSelect(region) {
@@ -605,6 +611,9 @@ export function createEditApp() {
 
     if (currentTool === 'imageOverlay') {
       updateImageOverlayRegion(region);
+    }
+    if (currentTool === 'shape') {
+      shapeTool.updateRegion(region);
     }
   }
 
@@ -1003,6 +1012,14 @@ export function createEditApp() {
 
   function bindEvents() {
     bindToolHoverDescriptions(elements);
+    shapeTool.bindEvents();
+
+    window.addEventListener('beforeunload', (event) => {
+      if (preview.getTargetPdfFile() || applying) {
+        event.preventDefault();
+        event.returnValue = true;
+      }
+    });
 
     elements.editPdfFile.addEventListener('change', handlePdfFileChange);
     bindSinglePdfDropZone(elements.editPdfDropZone);

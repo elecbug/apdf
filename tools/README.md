@@ -1,11 +1,11 @@
-# APDF Smoke Check v9
+# APDF Smoke Check v10
 
 This smoke checker targets the current APDF routing model after the Python split and Edit utility updates.
 
 It verifies:
 
 - Core HTML pages
-- Edit page UI control IDs, including drag-and-drop target, Preview Zoom, coordinate inspector, Append PDF, Page Numbers, Add Text, text box width, text style toggles, Add Image, and Undo controls
+- Edit page UI control IDs, including drag-and-drop target, Preview Zoom, coordinate inspector, Append PDF, Page Numbers, Add Text, text box width, text style toggles, Add Image, Shapes, and Undo controls
 - Browser-session source cache APIs
 - `/compose`, including inline download responses
 - `/edit/apply` operations:
@@ -19,6 +19,7 @@ It verifies:
   - `move_pages`
   - `overlay_text`
   - `overlay_image`
+  - `overlay_shape` (all six shapes, transparency, RGBA, and separate fill/border alpha)
   - combined operation list
 - Job result page
 - PDF download endpoint
@@ -68,6 +69,8 @@ python -m unittest discover -s tests -v
 
 These cover visible page coordinates at all four rotations, cropped pages, text orientation, image placement bounds, page numbering, inserted page sizes, invalid numeric values and page selections, empty/encrypted PDFs, and rollback of failed upload batches.
 
+Shape regressions additionally cover all six vector shapes, independent fill/border alpha, RGBA multiplication, transparent colors, alpha zero, bounds and border widths, and all rotations with nonzero CropBox origins.
+
 The browser regressions use Playwright Chromium and the actual PDF.js engine. Run a disposable APDF server with its own data directory, then run the checks from the project root:
 
 ```bash
@@ -85,3 +88,7 @@ node tests/browser_logic.cjs http://127.0.0.1:8765
 ```
 
 Set `APDF_TEST_PYTHON` if the Python interpreter with the project dependencies is not `python3`. For a server that already serves PDF.js, `APDF_TEST_PDFJS` is optional. The checks exercise invalid page inputs, overlapping rendering, failed document loads, edits versus file replacement, local downloads and Undo, visible coordinates and actual image placement, mobile fit-width, source operation locking, and blocked browser storage.
+
+Use the same browser environment variables with `node tests/browser_shapes.cjs http://127.0.0.1:8765` for shape-specific checks. These drag in both directions, insert and undo all six shapes, inspect actual rendered pixels for separate fill/border alpha and transparency, reject invalid alpha, and verify placement on rotated/cropped pages and the mobile layout.
+
+Run `node tests/browser_leave.cjs http://127.0.0.1:8765` with the same environment variables to verify that an empty Edit page reloads freely, a loaded PDF prompts before refresh/navigation, cancel preserves the PDF, and confirming permits navigation.
