@@ -1,8 +1,9 @@
-import { getEditElements } from './dom.js?v=5';
+import { getEditElements } from './dom.js?v=7';
 import { downloadFileObject } from './download.js?v=4';
-import { createPdfPreview } from './pdf-preview.js?v=4';
+import { createPdfPreview } from './pdf-preview.js?v=7';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 import { createShapeTool } from './shapes.js?v=1';
+import { createPenTool } from './pen.js?v=1';
 
 const MAX_UNDO_HISTORY = 20;
 
@@ -22,9 +23,10 @@ export function createEditApp() {
 
   const preview = createPdfPreview(elements, setEditStatus);
   const shapeTool = createShapeTool(elements, preview, applySingleOperation);
+  const penTool = createPenTool(elements, preview, applySingleOperation, updateUndoButton);
 
   function updateUndoButton() {
-    elements.undoEditApply.disabled = applying || undoStack.length === 0;
+    elements.undoEditApply.disabled = applying || (undoStack.length === 0 && !penTool.hasStrokes());
   }
 
   function updateDownloadButton() {
@@ -48,6 +50,7 @@ export function createEditApp() {
 
   function setBusy(busy) {
     applying = busy;
+    penTool.setBusy(busy);
     [...getToolActionButtons(), elements.editPdfFile,
       elements.prevPageButton, elements.nextPageButton, elements.previewPageInput,
       elements.zoomOutButton, elements.zoomInButton, elements.previewZoomSelect
@@ -103,6 +106,12 @@ export function createEditApp() {
 
     if (!isPdfFile(file)) {
       alert('Select a PDF file.');
+      elements.editPdfFile.value = '';
+      return;
+    }
+
+    if (penTool.hasStrokes()) {
+      alert('Apply or clear the pending pen strokes before opening another PDF.');
       elements.editPdfFile.value = '';
       return;
     }
@@ -204,6 +213,11 @@ export function createEditApp() {
     }
 
     if (applying) {
+      return false;
+    }
+
+    if (op.type !== 'overlay_drawing' && penTool.hasStrokes()) {
+      alert('Apply or clear the pending pen strokes before using another edit tool.');
       return false;
     }
 
@@ -883,6 +897,10 @@ export function createEditApp() {
   }
 
   async function undoLastApply() {
+    if (!applying && penTool.hasStrokes()) {
+      penTool.undoStroke();
+      return;
+    }
     if (undoStack.length === 0 || applying) {
       return;
     }
@@ -906,7 +924,9 @@ export function createEditApp() {
     }
   }
 
-  function downloadEditedPdf() {
+  async function downloadEditedPdf() {
+    if (applying) return;
+    if (penTool.hasStrokes() && !await penTool.apply()) return;
     const targetPdfFile = preview.getTargetPdfFile();
 
     if (targetPdfFile) {
@@ -1013,6 +1033,7 @@ export function createEditApp() {
   function bindEvents() {
     bindToolHoverDescriptions(elements);
     shapeTool.bindEvents();
+    penTool.bindEvents();
 
     window.addEventListener('beforeunload', (event) => {
       if (preview.getTargetPdfFile() || applying) {
@@ -1037,6 +1058,7 @@ export function createEditApp() {
     elements.editToolButtons.forEach((button) => {
       button.addEventListener('click', () => {
         currentTool = button.dataset.tool;
+        penTool.setActive(currentTool === 'pen');
         setActiveTool(elements, currentTool);
       });
     });
@@ -1052,7 +1074,7 @@ export function createEditApp() {
     elements.addImageOverlayOp.addEventListener('click', () => { void addImageOverlayOperation(); });
 
     elements.undoEditApply.addEventListener('click', () => { void undoLastApply(); });
-    elements.downloadEditedPdf.addEventListener('click', downloadEditedPdf);
+    elements.downloadEditedPdf.addEventListener('click', () => { void downloadEditedPdf(); });
     elements.insertImageFile.addEventListener('change', updateSelectedImageName);
     elements.appendPdfFile.addEventListener('change', updateSelectedAppendPdfName);
     elements.imageOverlayFile.addEventListener('change', updateSelectedImageOverlayName);

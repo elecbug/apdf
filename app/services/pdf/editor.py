@@ -18,6 +18,7 @@ from reportlab.pdfgen import canvas
 from app.config import FONTS_DIR
 from app.services.pdf.core import finite_float as _finite_float, open_pdf
 from app.services.pdf.shapes import make_shape_overlay
+from app.services.pdf.drawing import make_drawing_overlay, validate_drawing
 
 
 SUPPORTED_EDIT_OPERATION_TYPES = {
@@ -31,6 +32,7 @@ SUPPORTED_EDIT_OPERATION_TYPES = {
     "overlay_text",
     "overlay_image",
     "overlay_shape",
+    "overlay_drawing",
 }
 
 
@@ -80,6 +82,9 @@ def apply_edit_operations(
 
         elif op_type == "overlay_shape":
             pages = _apply_overlay_shape(pages, op)
+
+        elif op_type == "overlay_drawing":
+            pages = _apply_overlay_drawing(pages, op)
 
         else:
             raise ValueError(f"Unsupported edit operation at #{index}: {op_type}")
@@ -501,6 +506,17 @@ def _apply_overlay_shape(pages: list[PageObject], op: dict[str, Any]) -> list[Pa
     width, height = _page_size(page)
     overlay = PdfReader(io.BytesIO(make_shape_overlay(width, height, op)))
     _merge_visible_overlay(page, overlay.pages[0])
+    return new_pages
+
+
+def _apply_overlay_drawing(pages: list[PageObject], op: dict[str, Any]) -> list[PageObject]:
+    grouped = validate_drawing(op.get("strokes"), [_page_size(page) for page in pages])
+    new_pages = list(pages)
+    for page_number, strokes in grouped.items():
+        page = new_pages[page_number - 1]
+        width, height = _page_size(page)
+        overlay = PdfReader(io.BytesIO(make_drawing_overlay(width, height, strokes)))
+        _merge_visible_overlay(page, overlay.pages[0])
     return new_pages
 
 

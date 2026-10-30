@@ -97,6 +97,7 @@ export function createPdfPreview(elements, setEditStatus) {
   let renderedPageNumber = 1;
   const coordinateClickHandlers = [];
   const regionSelectHandlers = [];
+  const renderHandlers = [];
 
   syncZoomControl();
   bindCoordinateEvents();
@@ -203,6 +204,9 @@ export function createPdfPreview(elements, setEditStatus) {
     renderedPageNumber = pageNumber;
     elements.previewPageInput.value = String(pageNumber);
     resetCoordinateLine('Coordinates: move pointer over the PDF to inspect page coordinates.');
+    renderHandlers.forEach(handler => {
+      try { handler(); } catch (error) { console.error(error); }
+    });
   }
 
   async function renderCurrentPage() {
@@ -244,7 +248,7 @@ export function createPdfPreview(elements, setEditStatus) {
     elements.previewCoordinateLine.classList.toggle('locked', locked);
   }
 
-  function pointerInfoFromEvent(event) {
+  function pointerInfoFromEvent(event, clamp = false) {
     if (!currentViewport || !targetPdfDocument) {
       return null;
     }
@@ -256,8 +260,13 @@ export function createPdfPreview(elements, setEditStatus) {
       return null;
     }
 
-    const canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
-    const canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+    let canvasX = (event.clientX - rect.left) * (canvas.width / rect.width);
+    let canvasY = (event.clientY - rect.top) * (canvas.height / rect.height);
+
+    if (clamp) {
+      canvasX = Math.max(0, Math.min(canvasX, canvas.width));
+      canvasY = Math.max(0, Math.min(canvasY, canvas.height));
+    }
 
     if (canvasX < 0 || canvasY < 0 || canvasX > canvas.width || canvasY > canvas.height) {
       return null;
@@ -283,6 +292,19 @@ export function createPdfPreview(elements, setEditStatus) {
 
   function coordinateFromPointerEvent(event) {
     return pointerInfoFromEvent(event)?.coordinate || null;
+  }
+
+  function getPageGeometry() {
+    if (!currentViewport || currentPageNumber !== renderedPageNumber) {
+      return null;
+    }
+    const [left, bottom, right, top] = currentViewport.viewBox;
+    const rotated = currentViewport.rotation % 180 !== 0;
+    return {
+      page: renderedPageNumber,
+      width: rotated ? top - bottom : right - left,
+      height: rotated ? right - left : top - bottom
+    };
   }
 
   function ensureDragRegionOverlay() {
@@ -685,6 +707,9 @@ export function createPdfPreview(elements, setEditStatus) {
   }
 
   return {
+    getPageGeometry,
+    getPointerCoordinate: (event, clamp = false) => pointerInfoFromEvent(event, clamp)?.coordinate || null,
+    onRender: handler => { renderHandlers.push(handler); },
     loadPdfFromFile,
     renderCurrentPage,
     parsePageInput,

@@ -35,6 +35,7 @@ Current edit tools:
 - Add text overlay with optional wrap width, color, and B/I/U styling
 - Add image overlay
 - Add circle, rectangle, triangle, pentagon, star, and rounded rectangle shapes with independent fill/border colors and alpha
+- Freehand drawing with per-stroke color, width, alpha, and ink/pencil/marker/dry-brush textures
 
 ## Run
 
@@ -125,6 +126,19 @@ Circles remain round and centered inside the selected box. Other shapes fit the 
 
 The `overlay_shape` API operation accepts `shape`, `page`, `x`, `y`, `width`, `height`, `fill_color`, `fill_opacity`, `stroke_color`, `stroke_opacity`, and `stroke_width`. Colors accept `null`, `"transparent"`, or `#RGB`, `#RGBA`, `#RRGGBB`, and `#RRGGBBAA`; an embedded color alpha is multiplied by its separate opacity value.
 
+### Freehand drawing
+
+1. Select **Pen**, then set its color, width (`0.1–100 pt`), alpha (`0–1`), and texture: Ink, Pencil, Marker, or Dry brush. The brush sample updates immediately.
+2. Draw directly on the preview with a mouse, touch, or stylus. A tap makes a dot. Each stroke keeps the settings used when it started.
+3. Switch pages, zoom, or tools as needed; pending strokes stay aligned with their pages.
+4. Click **Apply Drawing** to save all pending pages to the PDF together. **Download PDF** also applies pending strokes before downloading.
+
+**Undo stroke** and the main **Undo** button remove the latest pending stroke. **Clear pending** removes the unapplied drawing. After Apply Drawing, the main Undo restores the PDF before that batch was applied. Apply or clear pending strokes before opening another PDF or applying another edit tool.
+
+Brushes are saved as PDF vectors using the same presets as the live preview, including separate pencil/dry-brush strands and flat marker tips. Width stays consistent in PDF points at every zoom. A lower alpha makes translucent marker strokes. Pending drawing remains in browser memory until applied; the Edit leave warning also protects this work. [Preview](docs/design/pen-preview.png).
+
+The `overlay_drawing` API operation accepts a `strokes` list. Each stroke contains `page`, `points` (`[[x,y], ...]` in visible page coordinates), `color`, `width`, `opacity`, and `texture` (`ink`, `pencil`, `marker`, or `dry_brush`). Colors support the same hex/transparent formats as shapes. Point centers must be inside the visible page; ink at its edges is clipped. A batch supports up to 200 strokes, 5,000 points per stroke, and 30,000 points in total.
+
 ## Storage model
 
 APDF uses temporary storage under:
@@ -175,7 +189,7 @@ fonts/NotoSansCJKkr-Regular.otf
 
 ## Tool icons
 
-The ten Edit tool icons are stored under:
+The eleven Edit tool icons are stored under:
 
 ```text
 app/static/icons/
@@ -194,6 +208,7 @@ tool-move.png
 tool-text.png
 tool-image-overlay.png
 tool-shapes.png
+tool-pen.png
 ```
 
 The set uses transparent 192×192 PNGs, displayed at 48×48, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.

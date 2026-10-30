@@ -40,7 +40,7 @@ w.write(Path(sys.argv[1]) / 'shapes.pdf')
     page.on('dialog', async dialog => { dialogs.push(dialog.message()); await dialog.dismiss(); });
     page.on('request', request => { if (new URL(request.url()).pathname === '/edit/apply') requests += 1; });
     await page.goto(base + '/edit', { waitUntil: 'networkidle' });
-    assert.equal(await page.locator('.edit-tool-button').count(), 10);
+    assert.equal(await page.locator('.edit-tool-button').count(), 11);
     await page.locator('#editPdfFile').setInputFiles(path.join(temp, 'shapes.pdf'));
     await page.waitForFunction(() => document.querySelector('#previewPageCount').textContent === '/ 4' && !document.querySelector('#editPdfFile').disabled);
     await page.locator('[data-tool="shape"]').click();

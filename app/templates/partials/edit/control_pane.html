@@ -150,6 +150,20 @@
         </span>
         <span class="tool-card-label">Shapes</span>
       </button>
+
+      <button
+        type="button"
+        class="edit-tool-button"
+        data-tool="pen"
+        data-tool-title="Freehand Pen"
+        data-tool-description="Draw directly on the preview with adjustable pen color, width, alpha, and brush texture."
+        aria-label="Freehand Pen"
+      >
+        <span class="tool-card-visual" aria-hidden="true">
+          <img src="/static/icons/tool-pen.png?v=1" width="48" height="48" alt="">
+        </span>
+        <span class="tool-card-label">Pen</span>
+      </button>
     </div>
   </section>
 
@@ -174,6 +188,7 @@
       {% include "partials/edit/tools/text.html" %}
       {% include "partials/edit/tools/image_overlay.html" %}
       {% include "partials/edit/tools/shape.html" %}
+      {% include "partials/edit/tools/pen.html" %}
     </div>
 
     <div class="edit-detail-actions" aria-label="Edit result actions">

@@ -312,6 +312,7 @@ class SmokeRunner:
         self.step("POST /edit/apply overlay_text", self.check_edit_overlay_text)
         self.step("POST /edit/apply overlay_image", self.check_edit_overlay_image)
         self.step("POST /edit/apply overlay_shape", self.check_edit_overlay_shape)
+        self.step("POST /edit/apply overlay_drawing", self.check_edit_overlay_drawing)
         self.step("POST /edit/apply combined queue", self.check_edit_combined_queue)
 
         if self.expect_legacy_removed:
@@ -422,6 +423,16 @@ class SmokeRunner:
             "shapeOverlayStrokeOpacity",
             "shapeOverlayStrokeTransparent",
             "shapeOverlayStrokeWidth",
+            "penColor",
+            "penWidth",
+            "penOpacity",
+            "penTexture",
+            "penBrushSample",
+            "penBrushPresets",
+            "penStatus",
+            "undoPenStroke",
+            "clearPenDrawing",
+            "applyPenDrawing",
             "undoEditApply",
             "downloadEditedPdf",
         ]
@@ -440,6 +451,7 @@ class SmokeRunner:
             "text",
             "imageOverlay",
             "shape",
+            "pen",
         ]
         missing_tools = [tool for tool in required_tools if f'data-tool="{tool}"' not in html]
         if missing_tools:
@@ -682,6 +694,14 @@ class SmokeRunner:
         ]
         return self.format_edit_result(self.apply_edit(operations, expected_delta=0))
 
+    def check_edit_overlay_drawing(self) -> str:
+        strokes = [
+            {"page": 1, "points": [[36, 36 + index * 24], [100, 48 + index * 24], [160, 36 + index * 24]],
+             "color": "#2d63c880", "width": 6, "opacity": 0.75, "texture": texture}
+            for index, texture in enumerate(("ink", "pencil", "marker", "dry_brush"))
+        ]
+        return self.format_edit_result(self.apply_edit([{"type": "overlay_drawing", "strokes": strokes}], expected_delta=0))
+
     def check_edit_combined_queue(self) -> str:
         image_id = "combo_image"
         append_pdf_id = "combo_append_pdf"
@@ -695,6 +715,7 @@ class SmokeRunner:
             {"type": "overlay_text", "page": 1, "x": 72, "y": 72, "text": "APDF Combo wrapped text", "font_size": 14, "color": "#d62828", "bold": True, "italic": False, "underline": True, "opacity": 0.9, "max_width": 180},
             {"type": "overlay_image", "image_id": overlay_image_id, "page": 1, "x": 108, "y": 108, "width": 36, "height": 36, "opacity": 1.0},
             {"type": "overlay_shape", "shape": "star", "page": 1, "x": 180, "y": 108, "width": 36, "height": 36, "fill_color": "#2d63c8", "fill_opacity": 0.5, "stroke_color": None},
+            {"type": "overlay_drawing", "strokes": [{"page": 1, "points": [[36, 180], [72, 200], [108, 180]], "texture": "pencil", "width": 3, "color": "#2d63c8", "opacity": 1}]},
             {"type": "rotate", "pages": "1,3", "angle": 180},
             {"type": "delete_pages", "pages": "2"},
         ]

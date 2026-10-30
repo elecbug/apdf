@@ -33,6 +33,17 @@ export function getEditElements() {
     addImageOverlayOp: document.getElementById('addImageOverlayOp'),
     addShapeOverlayOp: document.getElementById('addShapeOverlayOp'),
 
+    penColor: document.getElementById('penColor'),
+    penWidth: document.getElementById('penWidth'),
+    penOpacity: document.getElementById('penOpacity'),
+    penTexture: document.getElementById('penTexture'),
+    penBrushSample: document.getElementById('penBrushSample'),
+    penBrushPresets: document.getElementById('penBrushPresets'),
+    penStatus: document.getElementById('penStatus'),
+    undoPenStroke: document.getElementById('undoPenStroke'),
+    clearPenDrawing: document.getElementById('clearPenDrawing'),
+    applyPenDrawing: document.getElementById('applyPenDrawing'),
+
     shapeOverlayType: document.getElementById('shapeOverlayType'),
     shapeOverlayPage: document.getElementById('shapeOverlayPage'),
     shapeOverlayX: document.getElementById('shapeOverlayX'),

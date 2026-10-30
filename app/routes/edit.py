@@ -28,6 +28,7 @@ SUPPORTED_EDIT_TYPES = {
     "overlay_text",
     "overlay_image",
     "overlay_shape",
+    "overlay_drawing",
 }
 
 

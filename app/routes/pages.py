@@ -4,6 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.web import templates
+from app.services.pdf.drawing import BRUSH_PRESETS
 
 
 router = APIRouter(tags=["pages"])
@@ -21,4 +22,4 @@ def assemble_page(request: Request):
 
 @router.get("/edit", response_class=HTMLResponse)
 def edit_page(request: Request):
-    return templates.TemplateResponse("edit.html", {"request": request})
+    return templates.TemplateResponse("edit.html", {"request": request, "pen_brushes": BRUSH_PRESETS})

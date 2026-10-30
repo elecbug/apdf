@@ -2,34 +2,19 @@ from __future__ import annotations
 
 import io
 import math
-import re
 from typing import Any
 
 from reportlab.pdfgen import canvas
 
 from app.services.pdf.core import finite_float
+from app.services.pdf.paint import parse_paint
 
 
 SUPPORTED_SHAPES = {"circle", "rectangle", "triangle", "pentagon", "star", "rounded_rectangle"}
 
 
 def _paint(value: Any, opacity: Any, label: str) -> tuple[tuple[float, float, float] | None, float]:
-    alpha = finite_float(opacity, f"overlay_shape {label}_opacity")
-    if not 0 <= alpha <= 1:
-        raise ValueError(f"overlay_shape {label}_opacity must be between 0 and 1")
-    if value is None or str(value).strip().lower() == "transparent":
-        return None, alpha
-
-    color = str(value).strip()
-    if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})", color):
-        raise ValueError(f"overlay_shape {label}_color must be a hex color or transparent")
-    digits = color[1:]
-    if len(digits) in {3, 4}:
-        digits = "".join(char * 2 for char in digits)
-    if len(digits) == 8:
-        alpha *= int(digits[6:8], 16) / 255
-    rgb = tuple(int(digits[index:index + 2], 16) / 255 for index in (0, 2, 4))
-    return rgb, alpha
+    return parse_paint(value, opacity, f"overlay_shape {label}")
 
 
 def make_shape_overlay(page_width: float, page_height: float, op: dict[str, Any]) -> bytes:

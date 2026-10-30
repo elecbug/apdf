@@ -1,0 +1,29 @@
+<section id="toolPanelPen" class="tool-panel">
+  <h3>Freehand Pen</h3>
+  <p>Draw directly on the PDF with a mouse, touch, or stylus. Each stroke keeps its own brush settings.</p>
+
+  <label>Color <input id="penColor" type="color" value="#2d63c8"></label>
+  <div class="size-fields">
+    <label>Width (pt) <input id="penWidth" type="number" min="0.1" max="100" step="0.1" value="3"></label>
+    <label>Alpha (0–1) <input id="penOpacity" type="number" min="0" max="1" step="0.05" value="1"></label>
+  </div>
+  <label>
+    Texture
+    <select id="penTexture">
+      {% for key, brush in pen_brushes.items() %}
+      <option value="{{ key }}">{{ brush.label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <canvas id="penBrushSample" class="pen-brush-sample" width="300" height="96" role="img" aria-label="Preview of the selected pen brush"></canvas>
+  <p class="tool-hint compact">Use a lower alpha for translucent marker strokes. Pending strokes stay visible when switching tools, pages, or zoom.</p>
+  <p id="penStatus" class="tool-hint" role="status">Select Pen, then draw on the PDF preview.</p>
+
+  <div class="size-fields">
+    <button type="button" id="undoPenStroke" class="secondary" disabled>Undo stroke</button>
+    <button type="button" id="clearPenDrawing" class="secondary" disabled>Clear pending</button>
+  </div>
+  <button type="button" id="applyPenDrawing" class="primary width-full" disabled>Apply Drawing</button>
+  <p class="tool-hint compact">Apply saves all pending pages together. Download PDF also applies pending strokes before saving.</p>
+  <script id="penBrushPresets" type="application/json">{{ pen_brushes | tojson }}</script>
+</section>
