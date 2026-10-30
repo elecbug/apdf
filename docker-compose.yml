@@ -41,3 +41,12 @@ services:
       APDF_SMOKE_WAIT_SECONDS: "60"
       APDF_SMOKE_EXPECT_LEGACY_REMOVED: "1"
     restart: "no"
+    networks:
+      - apdf-net
+
+networks:
+  apdf-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.230.7.0/24
