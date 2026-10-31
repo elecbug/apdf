@@ -2,6 +2,11 @@
   <summary>Notes</summary>
   <ul>
     <li>Page numbers are 1-based.</li>
+    {% if assemble_result_code_enabled %}
+    <li>Build creates a result code and opens its result page. Use the code above to reopen it until it expires.</li>
+    {% else %}
+    <li>Build returns a PDF immediately. No result code or stored result job is created.</li>
+    {% endif %}
     <li>The source cache is bound to this browser through localStorage client_id.</li>
     <li>Browsers cannot repopulate file inputs after Back/reload, so APDF restores the server-side source cache instead.</li>
     <li>Uploaded PDFs stay in this browser session cache. Back/reload restores this list while the server cache is alive.</li>

@@ -5,6 +5,7 @@ import { clampInput, normalizePositiveInt } from '../shared/input.js';
 import { getAssembleElements } from './dom.js';
 import { renderSources } from './render.js';
 import { createSourceOrderStorage } from './storage.js?v=2';
+import { requestAssembly } from './build.js?v=1';
 
 export function createAssembleApp(options = {}) {
   const elements = getAssembleElements();
@@ -327,15 +328,15 @@ export function createAssembleApp(options = {}) {
         plan
       };
 
-      const data = await apiJson('/compose', {
+      const data = options.apiJson ? await apiJson('/compose', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
-      });
+      }) : await requestAssembly(payload);
 
       if (data.file) {
         downloadFileObject(data.file, data.file.name || 'assembled.pdf');
-        setStatus('Built PDF locally. Download started.');
+        setStatus(options.local ? 'Built PDF locally. Download started.' : 'Built PDF. Download started.');
         return;
       }
       if (data.download_url) {

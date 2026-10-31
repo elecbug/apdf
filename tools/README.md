@@ -9,7 +9,7 @@ It verifies:
 - Core HTML pages
 - Edit page UI control IDs, including drag-and-drop target, Preview Zoom, coordinate inspector, Append PDF, Page Numbers, Add Text, text box width, text style toggles, Add Image, Shapes, Pen, and Undo controls
 - Browser-session source cache APIs
-- `/compose`, including inline download responses
+- `/compose` in the selected Docker mode: a direct PDF with no code, or a stored result-code page
 - `/edit/apply` operations:
   - `insert_blank`
   - `insert_image_page`
@@ -71,6 +71,10 @@ python -m unittest discover -s tests -v
 ```
 
 These cover visible page coordinates at all four rotations, cropped pages, text orientation, image placement bounds, page numbering, inserted page sizes, invalid numeric values and page selections, empty/encrypted PDFs, and rollback of failed upload batches.
+
+Assemble regressions also verify direct downloads create no stored jobs or codes, clean temporary outputs after transfer and failure, keep source PDFs, enforce the server-selected mode, retain failed result-code jobs, and render only the selected mode's controls. The smoke checker detects the selected mode and validates its response contract and lookup availability. Use `APDF_ASSEMBLE_RESULT_CODE=false` and `true` on separate disposable servers to check both.
+
+Run `APDF_TEST_PYTHON=python3 node tests/browser_assemble_modes.cjs http://127.0.0.1:8775 http://127.0.0.1:8776` against those two servers (direct mode first). The browser checks the selected controls, ordered/ranged PDF contents, error recovery, direct downloads without job requests, result-page navigation without automatic download, and reopening results by code. Screenshots are written to `docs/design/assemble-*-mode.png`.
 
 Shape regressions additionally cover all six vector shapes, independent fill/border alpha, RGBA multiplication, transparent colors, alpha zero, bounds and border widths, and all rotations with nonzero CropBox origins.
 

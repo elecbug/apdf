@@ -267,6 +267,7 @@ class SmokeRunner:
         self.pdf_filename = pdf_path.name or "test.pdf"
         self.source_id: str | None = None
         self.page_count: int = 1
+        self.compose_mode: str | None = None
 
     def step(self, name: str, func: Callable[[], str | None]) -> None:
         start = time.perf_counter()
@@ -296,8 +297,8 @@ class SmokeRunner:
         self.step("source API: empty list", self.check_source_empty_list)
         self.step("source API: upload PDF", self.check_source_upload)
         self.step("source API: list uploaded PDF", self.check_source_uploaded_list)
-        self.step("POST /compose + GET job/download", self.check_compose)
-        self.step("POST /lookup", self.check_lookup)
+        self.step("POST /compose selected output mode", self.check_compose)
+        self.step("result-code lookup availability", self.check_lookup)
         self.step("source API: delete one source", self.check_source_delete_one)
         self.step("source API: clear sources", self.check_source_clear_all)
 
@@ -515,22 +516,31 @@ class SmokeRunner:
             "client_id": self.client_id,
             "plan": [{"source_id": self.source_id, "start": 1, "end": end_page}],
         }
-        data = assert_json_ok(self.client.post_json("/compose", payload), "POST /compose")
+        response = self.client.post_json("/compose", payload)
+        if response.headers.get("content-type", "").startswith("application/pdf"):
+            assert_pdf_response(response, "direct assembled PDF")
+            self.compose_mode = "direct"
+            if 'action="/lookup"' in self.client.get("/assemble").text:
+                raise AssertionError("Direct Assemble mode must hide result-code lookup")
+            return f"mode=direct, no result code, pages=1-{end_page}"
+        data = assert_json_ok(response, "POST /compose")
         if data.get("ok") is not True:
             raise AssertionError(f"POST /compose: ok is not true: {data!r}")
         code = str(data.get("code", "")).upper()
         if not code:
             raise AssertionError(f"POST /compose: missing code: {data!r}")
-        download_url = data.get("download_url")
-        if data.get("mode") == "inline":
-            if not isinstance(download_url, str) or not download_url:
-                raise AssertionError(f"POST /compose: inline response missing download_url: {data!r}")
-            assert_pdf_response(self.client.get(download_url), "download inline assembled PDF")
+        if data.get("mode") != "job" or "download_url" in data:
+            raise AssertionError(f"Result-code mode must open the result page: {data!r}")
+        self.compose_mode = "job"
         self.assert_job_done_and_download(code, "assembled.pdf")
         self.delete_job(code)
         return f"code={code}, mode={data.get('mode')}, pages=1-{end_page}"
 
     def check_lookup(self) -> str:
+        if self.compose_mode == "direct":
+            if 'action="/lookup"' in self.client.get("/assemble").text:
+                raise AssertionError("Direct Assemble mode must hide result-code lookup")
+            return "hidden in direct mode; no result code is issued"
         if not self.source_id:
             self.check_source_upload()
         payload = {

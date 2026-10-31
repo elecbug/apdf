@@ -16,7 +16,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APDF_DATA_DIR=/app/data \
-    APDF_FONTS_DIR=/app/fonts
+    APDF_FONTS_DIR=/app/fonts \
+    APDF_ASSEMBLE_RESULT_CODE=false
 
 WORKDIR /app
 

@@ -3,6 +3,7 @@
     <div>
       <h2>Sources</h2>
       <p>Drag PDFs here, adjust order and page ranges, then build directly from the current list.</p>
+      <p id="assembleModeHint" class="small">{% if assemble_result_code_enabled %}Build opens a result page with a code for downloading again later.{% else %}Build downloads your PDF immediately. No result code is created.{% endif %}</p>
     </div>
     <div class="upload-box">
       <div class="split-box">
@@ -34,5 +35,5 @@
       </tbody>
     </table>
   </div>
-  <button type="button" id="buildButton" class="primary width-full">Build PDF</button>
+  <button type="button" id="buildButton" class="primary width-full">{% if assemble_result_code_enabled %}Build &amp; Get Result Code{% else %}Build PDF{% endif %}</button>
 </div>

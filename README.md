@@ -33,7 +33,7 @@ Open **http://127.0.0.1:4173**. The React app includes all Edit and Assemble too
 - Select page ranges directly in the source list.
 - Reorder or remove source PDFs.
 - Build a new PDF from the current source list.
-- Small synchronous results download immediately after Build.
+- Choose immediate PDF downloads or result-code pages using the Docker setting below.
 
 ### Edit
 
@@ -99,7 +99,7 @@ docker compose up smoke
 4. Set the First/Last page range for each source.
 5. Remove unwanted sources if needed.
 6. Click **Build PDF**.
-7. Small synchronous results download immediately. Larger/background results open the result page.
+7. With result-code mode disabled, the PDF downloads immediately. With it enabled, the result page opens with a reusable code and download link.
 
 Page numbers are 1-based.
 
@@ -181,7 +181,27 @@ Client source cache:  6 hours
 
 ## Environment variables
 
+### Assemble output mode
+
+Set **`APDF_ASSEMBLE_RESULT_CODE`** in `docker-compose.yml` or the Compose `.env` file:
+
+| Value | Build behavior |
+| --- | --- |
+| `false` (default) | Return the assembled PDF immediately. No job or result code is created, and the lookup form is hidden. Temporary output is removed after transfer. |
+| `true` | Always save a result job and open its page with a code and download link. The lookup form is visible. Results use the configured job expiration. |
+
+The setting applies to all Assemble builds, regardless of file size or page count. These modes are separate; there is no automatic size-based switch. Both preserve the uploaded source list. Edit downloads and existing job links continue to work. The offline browser and desktop apps always build locally and do not use this Docker setting.
+
+For example, put `APDF_ASSEMBLE_RESULT_CODE=true` in `.env`, then apply it:
+
+```bash
+docker compose up -d --build apdf
+```
+
+Set it back to `false` and recreate the container to return to direct downloads. `docker compose restart` alone does not apply changed environment variables. `APDF_MAX_INLINE_BYTES` and `APDF_MAX_INLINE_PAGES` now apply only to Edit job metadata, not Assemble routing.
+
 ```text
+APDF_ASSEMBLE_RESULT_CODE
 APDF_JOB_EXPIRE_SECONDS
 APDF_CLIENT_EXPIRE_SECONDS
 APDF_MAX_INLINE_BYTES
