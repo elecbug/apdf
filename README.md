@@ -4,6 +4,14 @@ APDF is a lightweight internal-network PDF utility server for assembling and edi
 
 It is designed for short-lived internal use, not as a long-term document storage system. A separate **APDF Local** web app also runs all PDF processing inside the browser and supports offline use.
 
+## Desktop app — no runtime installation
+
+APDF Local now also ships as a desktop app with its browser and PDF runtime included. Users do not need Node.js, Python, Docker, a separate browser, a server process, or an internet connection, including on the first launch.
+
+Open the Windows portable EXE, the macOS app, or the Linux executable from the complete extracted archive. Builds are written to `desktop/releases`; [the desktop guide](desktop/README.md) explains the OS/CPU variants, storage, signing status, and builds. [The desktop workflow](.github/workflows/desktop.yml) builds Windows/macOS/Linux x64 and arm64 packages on the corresponding native runners.
+
+All existing edit/assemble tools are shared with the web app. The desktop app uses native PDF save dialogs and confirmation before leaving an editing session. Web favicons and desktop icons now use the same APDF document design.
+
 ## Local-only web app
 
 With Node.js 22.12+ installed:

@@ -1,0 +1,53 @@
+name: Desktop apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['desktop-v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:local
+      - run: npm run test:desktop
+      - run: npm run build:desktop
+      - name: Verify the desktop PDF workflow
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 -m venv /tmp/apdf-desktop-tests
+          /tmp/apdf-desktop-tests/bin/pip install -r app/requirements.txt
+          APDF_TEST_PYTHON=/tmp/apdf-desktop-tests/bin/python APDF_TEST_NO_SANDBOX=1 npm run test:desktop:browser
+      - name: Package both supported CPU architectures
+        run: npx electron-builder --config desktop/electron-builder.mjs --${{ matrix.platform }} --x64 --arm64
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: APDF-Local-${{ matrix.platform }}
+          path: |
+            desktop/releases/APDF-Local-*.exe
+            desktop/releases/APDF-Local-*.zip
+            desktop/releases/APDF-Local-*.dmg
+            desktop/releases/APDF-Local-*.tar.gz
+            desktop/README.md
+          if-no-files-found: error
+          retention-days: 14

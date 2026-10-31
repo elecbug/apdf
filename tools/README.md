@@ -1,5 +1,7 @@
 # APDF Smoke Check v11
 
+The desktop app has separate protocol and full PDF workflow checks: `npm run test:desktop` and `npm run test:desktop:browser`. See [the desktop guide](../desktop/README.md). Both browser and desktop variants share the full workflow test, including all tools and offline processing. `npm run icons` regenerates web favicons and native icons from the shared APDF SVG.
+
 This smoke checker targets the current APDF routing model after the Python split and Edit utility updates.
 
 It verifies:

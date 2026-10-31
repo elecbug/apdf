@@ -3,22 +3,36 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
+    "icons": "node tools/generate-icons.mjs",
     "prepare:local": "node local-app/scripts/prepare.mjs",
     "dev:local": "npm run prepare:local && vite --config local-app/vite.config.mjs --host 127.0.0.1",
-    "build:local": "npm run prepare:local && vite build --config local-app/vite.config.mjs && node local-app/scripts/offline.mjs",
+    "build:local": "npm run icons && npm run prepare:local && vite build --config local-app/vite.config.mjs && node local-app/scripts/offline.mjs",
     "preview:local": "node local-app/scripts/serve.mjs",
     "package:local": "npm run build:local && node local-app/scripts/package.mjs",
     "local": "npm run build:local && npm run preview:local",
     "test:local": "node --test local-app/tests/*.test.mjs",
-    "test:local:browser": "node local-app/tests/browser.cjs"
+    "test:local:browser": "node local-app/tests/browser.cjs",
+    "build:desktop": "npm run build:local && node desktop/scripts/prepare.mjs",
+    "desktop": "npm run build:desktop && electron desktop/.build/app",
+    "package:desktop": "npm run build:desktop && electron-builder --config desktop/electron-builder.mjs",
+    "package:desktop:win": "npm run build:desktop && electron-builder --config desktop/electron-builder.mjs --win --x64 --arm64",
+    "package:desktop:mac": "npm run build:desktop && electron-builder --config desktop/electron-builder.mjs --mac --x64 --arm64",
+    "package:desktop:linux": "npm run build:desktop && electron-builder --config desktop/electron-builder.mjs --linux --x64 --arm64",
+    "test:desktop": "node --test desktop/tests/*.test.mjs",
+    "test:desktop:browser": "node desktop/tests/run-browser.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "1.1.0",
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0",
     "fflate": "0.8.3",
     "nunjucks": "3.2.4",
     "pdfjs-dist": "6.4.299",

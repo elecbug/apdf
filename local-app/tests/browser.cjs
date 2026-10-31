@@ -3,8 +3,9 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
-const { chromium } = require('playwright');
-const base = process.argv[2] || 'http://127.0.0.1:4173';
+const { chromium, _electron } = require('playwright');
+const desktop = process.env.APDF_TEST_DESKTOP === '1';
+const base = desktop ? 'apdf://app' : (process.argv[2] || 'http://127.0.0.1:4173');
 
 (async () => {
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'apdf-local-'));
@@ -21,24 +22,58 @@ for name, count in [('source-a', 3), ('source-b', 2)]:
     c.save()
 Image.new('RGB', (40, 20), 'red').save(root/'red.png')
 `, temp]);
-  const browser = await chromium.launch({ headless: true });
+  let electron;
+  async function launchDesktop() {
+    const flags = process.platform === 'linux' ? ['--ozone-platform=headless', '--disable-gpu'] : [];
+    if (process.env.APDF_TEST_NO_SANDBOX === '1') flags.push('--no-sandbox');
+    const executablePath = process.env.APDF_DESKTOP_EXECUTABLE;
+    const instance = await _electron.launch({
+      ...(executablePath ? { executablePath } : {}),
+      args: executablePath ? flags : [...flags, path.resolve('desktop/.build/app')],
+      env: { ...process.env, APDF_DESKTOP_DATA_DIR: path.join(temp, 'profile') },
+      timeout: 30000,
+    });
+    await instance.evaluate(({ dialog }) => {
+      globalThis.apdfTestPrompts = 0;
+      globalThis.apdfTestLeaveChoice = 1;
+      dialog.showMessageBoxSync = () => { globalThis.apdfTestPrompts++; return globalThis.apdfTestLeaveChoice; };
+    });
+    return instance;
+  }
+  if (desktop) electron = await launchDesktop();
+  const browser = desktop ? {
+    async newContext() { return electron.context(); },
+    async close() {
+      await electron.evaluate(() => { globalThis.apdfTestLeaveChoice = 1; }).catch(() => {});
+      await electron.close();
+    },
+  } : await chromium.launch({ headless: true });
   try {
-    const context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
-    const page = await context.newPage();
+    let context = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
+    let page = desktop ? await electron.firstWindow() : await context.newPage();
     const errors = [], network = [], alerts = [];
     let leaveWarnings = 0;
+    if (desktop) {
+      await context.exposeBinding('apdfTestAlert', (_source, message) => alerts.push(message));
+      await context.addInitScript(() => { window.alert = message => { void window.apdfTestAlert(String(message)); }; });
+      await page.evaluate(() => { window.alert = message => { void window.apdfTestAlert(String(message)); }; });
+    }
     context.on('request', request => {
       const url = request.url();
       if (url.startsWith('http')) network.push({ url, method: request.method() });
     });
     page.on('pageerror', error => errors.push(error.message));
     page.on('dialog', async dialog => {
-      if (dialog.type() === 'beforeunload') { leaveWarnings += 1; await dialog.accept(); }
-      else { alerts.push(dialog.message()); await dialog.dismiss(); }
+      if (dialog.type() === 'beforeunload') { leaveWarnings += 1; if (!desktop) await dialog.accept(); }
+      else { alerts.push(dialog.message()); await dialog.dismiss().catch(error => { if (!desktop) throw error; }); }
     });
-    await page.goto(base);
+    if (!desktop) await page.goto(base);
     await page.waitForSelector('#editPdfFile', { timeout: 60000 });
-    await page.waitForFunction(() => document.querySelector('.offline-status').textContent === 'Ready for offline use', { timeout: 60000 });
+    await page.waitForFunction(desktop => document.querySelector('.offline-status').textContent === (desktop ? 'Offline desktop app · Everything is included' : 'Ready for offline use'), desktop, { timeout: 60000 });
+    if (desktop) {
+      assert.deepEqual(await page.evaluate(() => [typeof require, typeof process]), ['undefined', 'undefined']);
+      assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getLastWebPreferences().sandbox), true);
+    }
     assert.equal(await page.locator('.edit-tool-button').count(), 11);
     assert.equal(await page.locator('.edit-tool-button img').evaluateAll(images => images.filter(img => !img.complete || !img.naturalWidth).length), 0);
     // No server is reachable after this point, including from the Python worker.
@@ -68,6 +103,25 @@ Image.new('RGB', (40, 20), 'red').save(root/'red.png')
       }, { bytes: [...await fs.readFile(filename)], base });
     }
     async function download(button, name) {
+      if (desktop) {
+        const filename = path.join(temp, name);
+        await electron.evaluate(({ session }, filename) => {
+          globalThis.apdfTestDownloads ||= {};
+          session.fromPartition('persist:apdf-local').once('will-download', (_event, item) => {
+            item.setSavePath(filename);
+            item.once('done', (_event, state) => { globalThis.apdfTestDownloads[filename] = state; });
+          });
+        }, filename);
+        await page.locator(button).click();
+        const deadline = Date.now() + 30000;
+        let state;
+        while (!state && Date.now() < deadline) {
+          state = await electron.evaluate((_electron, filename) => globalThis.apdfTestDownloads?.[filename], filename);
+          if (!state) await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        assert.equal(state, 'completed');
+        return filename;
+      }
       const pending = page.waitForEvent('download');
       await page.locator(button).click();
       const result = await pending;
@@ -154,17 +208,27 @@ Image.new('RGB', (40, 20), 'red').save(root/'red.png')
     await page.locator('#undoEditApply').click();
     await page.waitForFunction(() => document.querySelector('#editStatusLine').textContent.startsWith('Undone.'));
     await fs.mkdir('docs/design', { recursive: true });
-    await page.screenshot({ path: 'docs/design/local-app-edit.png', fullPage: true });
+    await page.screenshot({ path: `docs/design/${desktop ? 'desktop' : 'local-app'}-edit.png`, fullPage: true });
+    if (desktop) {
+      await electron.evaluate(({ BrowserWindow }) => {
+        globalThis.apdfTestLeaveChoice = 0;
+        BrowserWindow.getAllWindows()[0].close();
+      });
+      assert.equal(await electron.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
+      assert.equal(await page.locator('#previewPageCount').innerText(), '/ 5');
+      await electron.evaluate(() => { globalThis.apdfTestLeaveChoice = 1; });
+    }
     // A real reload must invoke the existing native leave warning.
     await page.reload();
     await page.waitForSelector('#editPdfFile', { timeout: 60000 });
-    assert.equal(leaveWarnings, 1);
+    if (desktop) assert.equal(await electron.evaluate(() => globalThis.apdfTestPrompts), 2);
+    else assert.equal(leaveWarnings, 1);
     await page.locator('a[href="?view=assemble"]').click();
     await page.waitForSelector('#pdfFiles', { timeout: 60000 });
     await page.waitForFunction(() => !document.querySelector('#pdfFiles').disabled);
     await page.locator('#pdfFiles').setInputFiles([path.join(temp, 'source-a.pdf'), path.join(temp, 'source-b.pdf')]);
     await page.waitForFunction(() => document.querySelectorAll('#sourceRows tr[data-source-id]').length === 2 && !document.querySelector('#pdfFiles').disabled);
-    const rows = page.locator('#sourceRows tr[data-source-id]');
+    let rows = page.locator('#sourceRows tr[data-source-id]');
     const firstId = await rows.nth(0).getAttribute('data-source-id');
     await page.locator(`#start-${firstId}`).fill('2');
     await rows.nth(1).locator('button[data-action="up"]').click();
@@ -185,7 +249,27 @@ Image.new('RGB', (40, 20), 'red').save(root/'red.png')
     const assembled = await download('#buildButton', 'assembled.pdf');
     const assembledPages = await pdfInfo(assembled);
     assert.deepEqual(assembledPages.map(page => page.text), ['source-b-1', 'source-b-2', 'source-a-2', 'source-a-3']);
-    await page.screenshot({ path: 'docs/design/local-app-assemble.png', fullPage: true });
+    await page.screenshot({ path: `docs/design/${desktop ? 'desktop' : 'local-app'}-assemble.png`, fullPage: true });
+    if (desktop) {
+      const denied = await page.evaluate(async () => {
+        try { await fetch('https://example.com/apdf-should-stay-offline'); return false; } catch { return true; }
+      });
+      assert(denied, 'External requests must be blocked');
+      assert(new URL(await page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute('href'), base).pathname.endsWith('.svg'));
+      // Close the entire native process, then restore the same persistent profile.
+      await electron.close();
+      electron = await launchDesktop();
+      context = electron.context();
+      page = await electron.firstWindow();
+      page.on('pageerror', error => errors.push(error.message));
+      await context.setOffline(true);
+      await page.waitForSelector('#editPdfFile', { timeout: 60000 });
+      await page.locator('a[href="?view=assemble"]').click();
+      await page.waitForFunction(() => document.querySelectorAll('#sourceRows tr[data-source-id]').length === 2 && !document.querySelector('#pdfFiles').disabled, null, { timeout: 60000 });
+      rows = page.locator('#sourceRows tr[data-source-id]');
+      assert((await rows.nth(0).innerText()).includes('source-b.pdf'));
+      assert.equal(await page.locator(`#start-${firstId}`).inputValue(), '2');
+    }
     await page.locator('#clearSources').click();
     await page.waitForFunction(() => document.querySelectorAll('#sourceRows tr[data-source-id]').length === 0);
     await page.reload();
@@ -194,10 +278,10 @@ Image.new('RGB', (40, 20), 'red').save(root/'red.png')
     assert.equal(await rows.count(), 0);
     assert.deepEqual(errors, []);
     assert.deepEqual(alerts, []);
-    assert(network.every(request => new URL(request.url).origin === new URL(base).origin && request.method === 'GET'), JSON.stringify(network.filter(request => request.method !== 'GET')));
+    assert(network.filter(request => !request.url.endsWith('/apdf-should-stay-offline')).every(request => new URL(request.url).origin === new URL(base).origin && request.method === 'GET'), JSON.stringify(network.filter(request => request.method !== 'GET')));
     assert(!network.some(request => /\/api\/|\/edit\/apply|\/compose/.test(request.url)));
     await page.setViewportSize({ width: 390, height: 844 });
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Mobile page must fit the viewport');
-    console.log('Local browser checks passed: 11 edit tools, 6 shapes, 4 brushes, Korean text, Undo/download, leave warning, persistent assembly/ranges, atomic source batches, offline reload, no uploads/external requests, mobile layout.');
+    console.log(`${desktop ? 'Desktop' : 'Local browser'} checks passed: 11 edit tools, 6 shapes, 4 brushes, Korean text, Undo/download, leave warning, persistent assembly/ranges${desktop ? ' across app restarts' : ''}, atomic source batches, offline reload, no uploads/external requests, mobile layout.`);
   } finally { await browser.close(); await fs.rm(temp, { recursive: true, force: true }); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

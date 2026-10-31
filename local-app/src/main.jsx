@@ -8,6 +8,7 @@ import { createLocalApi, createPlanStorage, createSourceStore } from './storage.
 import './style.css';
 
 const mode = new URLSearchParams(location.search).get('view') === 'assemble' ? 'assemble' : 'edit';
+const desktop = location.protocol === 'apdf:';
 const base = new URL('./', document.baseURI);
 const asset = path => new URL(path, base).href;
 
@@ -46,7 +47,7 @@ function App() {
   const [message, setMessage] = useState('Starting the local workspace…');
   const [engine, setEngine] = useState(null);
   const [error, setError] = useState(null);
-  const [offline, setOffline] = useState('Preparing offline access…');
+  const [offline, setOffline] = useState(desktop ? 'Offline desktop app · Everything is included' : 'Preparing offline access…');
   const [install, setInstall] = useState(null);
   useEffect(() => {
     const local = createLocalEngine(setMessage);
@@ -54,6 +55,7 @@ function App() {
     return () => local.destroy();
   }, []);
   useEffect(() => {
+    if (desktop) return;
     const prompt = event => { event.preventDefault(); setInstall(event); };
     window.addEventListener('beforeinstallprompt', prompt);
     const installed = () => setInstall(null);

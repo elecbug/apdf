@@ -112,7 +112,7 @@ await cp(path.join(local, 'app-icon.svg'), path.join(output, 'app-icon.svg'));
 await writeFile(path.join(output, 'manifest.webmanifest'), JSON.stringify({
   id: './', name: 'APDF Local', short_name: 'APDF Local', description: 'Private, offline PDF assembly and editing.',
   start_url: './', scope: './', display: 'standalone', background_color: '#f5f6f8', theme_color: '#2d63c8',
-  icons: [{ src: './app-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }, { src: './static/icons/tool-blank.png', sizes: '192x192', type: 'image/png' }],
+  icons: [{ src: './app-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }, { src: './static/icons/app-icon-192.png', sizes: '192x192', type: 'image/png' }, { src: './static/icons/app-icon.png', sizes: '512x512', type: 'image/png' }],
 }, null, 2));
 await writeFile(path.join(output, 'THIRD_PARTY_NOTICES.txt'), `APDF Local bundles React (MIT), Pyodide (MPL-2.0), Python (PSF), PDF.js (Apache-2.0), Pillow (HPND), pypdf (BSD-3-Clause), ReportLab (BSD), chardet (LGPL-2.1), and Nanum Gothic (SIL OFL-1.1). License files are retained in licenses/, engine/app.zip, the Pillow wheel, and vendor/pdfjs/LICENSE. Pyodide source: https://github.com/pyodide/pyodide/tree/${version}. Dependencies are pinned in package-lock.json and local-app/scripts/prepare.mjs.\n`);
 console.log(`Local assets prepared (Pyodide ${version}; all runtime dependencies are bundled).`);
