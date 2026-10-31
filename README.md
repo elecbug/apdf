@@ -4,6 +4,10 @@ APDF is a lightweight internal-network PDF utility server for assembling and edi
 
 It is designed for short-lived internal use, not as a long-term document storage system. A separate **APDF Local** web app also runs all PDF processing inside the browser and supports offline use.
 
+## Documentation
+
+The [English documentation index](docs/README.md) links the user guide, development setup, architecture, configuration, HTTP API, PDF operation specification, extension guide, testing, deployment, and troubleshooting. Start there when using, integrating, operating, or modifying APDF.
+
 ## Desktop app — no runtime installation
 
 APDF Local now also ships as a desktop app with its browser and PDF runtime included. Users do not need Node.js, Python, Docker, a separate browser, a server process, or an internet connection, including on the first launch.

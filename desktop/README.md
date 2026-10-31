@@ -1,5 +1,7 @@
 # APDF Local 데스크톱 앱
 
+English user, development, packaging, and implementation guides: [APDF documentation](../docs/README.md).
+
 Node.js, Python, Docker, 별도 브라우저 설치 없이 실행하는 PDF 편집·조합 앱입니다. 브라우저와 PDF 실행 엔진, 한글 글꼴이 앱 안에 들어 있습니다. **처음 실행할 때도 인터넷 연결이 필요하지 않습니다.** 서버 프로세스나 localhost 포트를 열지 않습니다.
 
 ## 실행

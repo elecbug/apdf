@@ -1,5 +1,7 @@
 # APDF Local
 
+Shared English usage, API/operation specifications, architecture, and maintenance guidance are available in the [documentation index](../docs/README.md).
+
 For an app that requires **no Node.js, Python, separate browser, or server setup**, use the [desktop distribution](../desktop/README.md). It includes every runtime and works offline from its first launch. The commands below are for the browser/static-server variant.
 
 APDF's existing editor and assembler as a local, offline web app. React owns the application shell. Shared editor controllers and templates provide the tools. Shared Python PDF services run in a Pyodide Web Worker; PDF.js renders previews. No PDF processing API or Python server is used.
