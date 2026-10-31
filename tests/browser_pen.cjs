@@ -101,6 +101,13 @@ w.write(Path(sys.argv[1])/'pen.pdf')
       await draw([[40, 120], [80, 130], [120, 100], [180, 140], [260, 120]]);
       const expected = await pixels();
       fingerprints.add(createHash('sha256').update(Buffer.from(expected)).digest('hex'));
+      if (texture === 'pencil' || texture === 'dry_brush') {
+        await page.locator('#previewZoomSelect').selectOption('1.5');
+        await page.waitForFunction(() => document.querySelector('#pdfCanvas').width === 450 && document.querySelector('.pen-preview-overlay').width === 450);
+        await page.locator('#previewZoomSelect').selectOption('1');
+        await page.waitForFunction(() => document.querySelector('#pdfCanvas').width === 300 && document.querySelector('.pen-preview-overlay').width === 300);
+        assert.deepEqual(await pixels(), expected, 'Zoom reshuffled the texture');
+      }
       await style('#0000ff', '20', '1', 'ink');
       assert.deepEqual(await pixels(), expected, 'Changing settings restyled a previous stroke');
       await apply();
@@ -113,6 +120,29 @@ w.write(Path(sys.argv[1])/'pen.pdf')
     }
     assert.equal(fingerprints.size, 4);
     assert.equal(await page.locator('.pdf-drag-region-overlay').count(), 0);
+
+    for (const texture of ['pencil', 'dry_brush']) {
+      await style('#ff0000', '12', '0.6', texture);
+      await draw([[40, 120], [260, 120]]);
+      const first = await pixels();
+      await page.locator('#undoPenStroke').click();
+      await draw([[40, 120], [260, 120]]);
+      assert.notDeepEqual(await pixels(), first, 'Separate strokes repeated the same texture stamp');
+      await page.locator('#clearPenDrawing').click();
+    }
+    console.log('PASS textured strokes remain fixed through zoom and use distinct pigment patterns per stroke');
+
+    for (const texture of ['pencil', 'dry_brush']) {
+      await style('#ff0000', '12', '0.6', texture);
+      await draw([[100, 120]]);
+      const expected = await pixels(true, 85, 105, 30, 30);
+      await apply();
+      const actual = await pixels(false, 85, 105, 30, 30);
+      const error = actual.reduce((sum, value, index) => sum + Math.abs(value - expected[index]), 0) / actual.length;
+      assert(error < 5, `${texture} grainy tap differs from its PDF output: ${error}`);
+      await undoPdf();
+    }
+    console.log('PASS pencil and dry-brush taps preserve their irregular pigment in PDF output');
 
     await style();
     await draw([[40, 120], [260, 120]]);

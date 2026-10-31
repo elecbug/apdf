@@ -1,3 +1,15 @@
+import { texturePaths } from './pen-texture.js?v=1';
+
+const textureCache = new WeakMap();
+
+function cachedTexture(stroke, surface) {
+  const cached = textureCache.get(stroke);
+  if (cached && cached.points === stroke.points && cached.count === stroke.points.length && cached.width === stroke.width && cached.seed === stroke.seed && cached.surface === surface) return cached.groups;
+  const groups = texturePaths(stroke, surface);
+  textureCache.set(stroke, { points: stroke.points, count: stroke.points.length, width: stroke.width, seed: stroke.seed, surface, groups });
+  return groups;
+}
+
 function offsetPoints(points, offset) {
   return points.map(([x, y], index) => {
     const previous = points[Math.max(0, index - 1)];
@@ -17,6 +29,31 @@ export function drawPenStroke(context, stroke, presets) {
   context.fillStyle = stroke.color;
   context.lineJoin = 'round';
   context.lineCap = preset.cap;
+  if (preset.surface) {
+    context.setLineDash([]);
+    for (const group of cachedTexture(stroke, preset.surface)) {
+      context.lineWidth = group.width;
+      context.globalAlpha = stroke.opacity * group.alpha;
+      context.beginPath();
+      let hasLines = false;
+      for (const points of group.paths) {
+        if (points.length === 1) {
+          context.save();
+          context.beginPath();
+          context.arc(...points[0], group.width / 2, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+        } else {
+          hasLines = true;
+          context.moveTo(...points[0]);
+          points.slice(1).forEach(point => context.lineTo(...point));
+        }
+      }
+      if (hasLines) context.stroke();
+    }
+    context.restore();
+    return;
+  }
   for (const layer of preset.layers) {
     const width = stroke.width * layer.width;
     context.lineWidth = width;

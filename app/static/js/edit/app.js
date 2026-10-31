@@ -3,7 +3,7 @@ import { downloadFileObject } from './download.js?v=4';
 import { createPdfPreview } from './pdf-preview.js?v=7';
 import { bindToolHoverDescriptions, setActiveTool } from './tools.js';
 import { createShapeTool } from './shapes.js?v=1';
-import { createPenTool } from './pen.js?v=1';
+import { createPenTool } from './pen.js?v=2';
 
 const MAX_UNDO_HISTORY = 20;
 

@@ -135,9 +135,11 @@ The `overlay_shape` API operation accepts `shape`, `page`, `x`, `y`, `width`, `h
 
 **Undo stroke** and the main **Undo** button remove the latest pending stroke. **Clear pending** removes the unapplied drawing. After Apply Drawing, the main Undo restores the PDF before that batch was applied. Apply or clear pending strokes before opening another PDF or applying another edit tool.
 
-Brushes are saved as PDF vectors using the same presets as the live preview, including separate pencil/dry-brush strands and flat marker tips. Width stays consistent in PDF points at every zoom. A lower alpha makes translucent marker strokes. Pending drawing remains in browser memory until applied; the Edit leave warning also protects this work. [Preview](docs/design/pen-preview.png).
+Brushes are saved as PDF vectors using the same presets as the live preview. Pencil scatters irregular graphite particles; Dry brush uses uneven, wandering bristles with variable paint loading and gaps. Each new stroke gets its own fixed texture pattern, which remains stable through zoom, redraw, and PDF output. Marks follow distance along the stroke rather than mouse-event spacing. Ink and Marker keep their smooth and flat tips. Width stays consistent in PDF points at every zoom. A lower alpha makes translucent marker strokes. Pending drawing remains in browser memory until applied; the Edit leave warning also protects this work. [Preview](docs/design/pen-preview.png) · [Texture comparison](docs/design/pen-texture-comparison.png).
 
 The `overlay_drawing` API operation accepts a `strokes` list. Each stroke contains `page`, `points` (`[[x,y], ...]` in visible page coordinates), `color`, `width`, `opacity`, and `texture` (`ink`, `pencil`, `marker`, or `dry_brush`). Colors support the same hex/transparent formats as shapes. Point centers must be inside the visible page; ink at its edges is clipped. A batch supports up to 200 strokes, 5,000 points per stroke, and 30,000 points in total.
+
+An optional per-stroke `seed` (unsigned 32-bit integer) reproduces a particular grain/bristle pattern. The browser generates and preserves this value; API callers that omit it receive a deterministic pattern derived from the stroke's first point and page. Texture detail is bounded for very long/thin strokes, and completed preview strokes are cached during drawing.
 
 ## Storage model
 

@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import math
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import RectangleObject
 
 from app.services.pdf.editor import apply_edit_operations
+from app.services.pdf.drawing import BRUSH_PRESETS
+from app.services.pdf.brush_texture import texture_paths
 
 
 class DrawingTests(unittest.TestCase):
@@ -115,6 +118,70 @@ class DrawingTests(unittest.TestCase):
             with self.subTest(count=len(strokes)):
                 with self.assertRaises(ValueError):
                     self.apply(strokes)
+
+    def test_texture_seed_is_validated(self):
+        for seed in (-1, 4294967296, True, 1.5, "1"):
+            with self.subTest(seed=seed):
+                with self.assertRaisesRegex(ValueError, "seed"):
+                    self.apply([{**self.stroke, "seed": seed}])
+        for seed in (0, 4294967295):
+            self.apply([{**self.stroke, "seed": seed}])
+
+    def test_textured_brushes_do_not_use_repeating_pdf_dashes(self):
+        for texture in ("pencil", "dry_brush"):
+            with self.subTest(texture=texture):
+                page = self.apply([{**self.stroke, "texture": texture, "seed": 42}]).pages[0]
+                dashes = [operands[0] for operands, operator in page.get_contents().operations if operator == b"d"]
+                self.assertTrue(dashes)
+                self.assertTrue(all(not pattern for pattern in dashes))
+
+
+class BrushTextureTests(unittest.TestCase):
+    def paths(self, texture, points=None, seed=42, width=12):
+        return texture_paths(points or [(0, 0), (240, 0)], width, BRUSH_PRESETS[texture]["surface"], seed)
+
+    def test_texture_is_stable_for_a_seed_and_varies_between_strokes(self):
+        for texture in ("pencil", "dry_brush"):
+            with self.subTest(texture=texture):
+                self.assertEqual(self.paths(texture), self.paths(texture))
+                self.assertNotEqual(self.paths(texture), self.paths(texture, seed=43))
+
+    def test_texture_follows_distance_not_mouse_event_spacing(self):
+        for texture in ("pencil", "dry_brush"):
+            with self.subTest(texture=texture):
+                sparse = self.paths(texture)
+                dense = self.paths(texture, [(x, 0) for x in range(241)])
+                # The first path is the original, faint base stroke. Pigment
+                # and bristle geometry should ignore how densely it was sampled.
+                self.assertEqual(len(sparse), len(dense))
+                for first, second in zip(sparse[1:], dense[1:]):
+                    self.assertEqual(first["width"], second["width"])
+                    self.assertEqual(first["alpha"], second["alpha"])
+                    self.assertEqual(len(first["paths"]), len(second["paths"]))
+                    for line_a, line_b in zip(first["paths"], second["paths"]):
+                        self.assertEqual(len(line_a), len(line_b))
+                        for point_a, point_b in zip(line_a, line_b):
+                            self.assertAlmostEqual(point_a[0], point_b[0], places=7)
+                            self.assertAlmostEqual(point_a[1], point_b[1], places=7)
+
+    def test_marks_have_nonuniform_lengths_positions_and_density(self):
+        for texture in ("pencil", "dry_brush"):
+            with self.subTest(texture=texture):
+                groups = self.paths(texture)[1:]
+                lines = [line for group in groups for line in group["paths"]]
+                lengths = {round(math.dist(line[0], line[-1]), 3) for line in lines}
+                offsets = {round(point[1], 3) for line in lines for point in line}
+                self.assertGreater(len(lengths), 30)
+                self.assertGreater(len(offsets), 30)
+                self.assertGreater(len({group["width"] for group in groups}), 2)
+                self.assertGreater(len({group["alpha"] for group in groups}), 2)
+
+    def test_texture_detail_is_bounded_for_long_thin_strokes(self):
+        for texture in ("pencil", "dry_brush"):
+            with self.subTest(texture=texture):
+                groups = self.paths(texture, [(0, 0), (100000, 0)], width=0.1)
+                self.assertLessEqual(sum(len(group["paths"]) for group in groups), 4097)
+                self.assertLess(sum(len(line) for group in groups for line in group["paths"]), 30000)
 
 
 if __name__ == "__main__":

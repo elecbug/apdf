@@ -1,4 +1,4 @@
-import { drawPenStroke } from './pen-brushes.js?v=1';
+import { drawPenStroke } from './pen-brushes.js?v=2';
 
 const MAX_STROKES = 200;
 const MAX_STROKE_POINTS = 5000;
@@ -17,6 +17,9 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
   let busy = false;
   let sourceFile = null;
   let frame = null;
+  let strokesRevision = 0;
+  let cachedPageKey = '';
+  const cachedPage = document.createElement('canvas');
 
   function readStyle(report = false) {
     const width = Number(elements.penWidth.value);
@@ -61,14 +64,23 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
       overlay.width = elements.pdfCanvas.width;
       overlay.height = elements.pdfCanvas.height;
     }
+    const visible = strokes.filter(stroke => stroke.page === geometry.page);
+    const key = `${strokesRevision}:${geometry.page}:${overlay.width}:${overlay.height}:${geometry.width}:${geometry.height}`;
+    if (key !== cachedPageKey) {
+      cachedPage.width = overlay.width;
+      cachedPage.height = overlay.height;
+      const background = cachedPage.getContext('2d');
+      background.setTransform(overlay.width / geometry.width, 0, 0, -overlay.height / geometry.height, 0, overlay.height);
+      visible.forEach(stroke => drawPenStroke(background, stroke, presets));
+      cachedPageKey = key;
+    }
     const context = overlay.getContext('2d');
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.clearRect(0, 0, overlay.width, overlay.height);
-    const visible = strokes.filter(stroke => stroke.page === geometry.page);
-    if (current?.page === geometry.page) visible.push(current);
-    overlay.hidden = visible.length === 0;
+    context.drawImage(cachedPage, 0, 0);
+    overlay.hidden = visible.length === 0 && current?.page !== geometry.page;
     context.setTransform(overlay.width / geometry.width, 0, 0, -overlay.height / geometry.height, 0, overlay.height);
-    visible.forEach(stroke => drawPenStroke(context, stroke, presets));
+    if (current?.page === geometry.page) drawPenStroke(context, current, presets);
   }
 
   function scheduleRender() {
@@ -82,7 +94,7 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
     const style = readStyle();
     if (!style) return;
     const points = Array.from({ length: 100 }, (_, index) => [12 + index * 2.75, 48 + Math.sin(index / 12) * 15]);
-    drawPenStroke(context, { ...style, points }, presets);
+    drawPenStroke(context, { ...style, points, seed: 0x51f15e }, presets);
   }
 
   function releasePointer() {
@@ -93,6 +105,7 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
   function finishStroke() {
     if (!current) return;
     strokes.push(current);
+    strokesRevision += 1;
     current = null;
     releasePointer();
     updateControls();
@@ -147,7 +160,10 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
       alert('Apply this drawing before adding more strokes.');
       return;
     }
-    current = { ...style, page: coordinate.page, points: [roundedPoint(coordinate)] };
+    const seed = globalThis.crypto?.getRandomValues
+      ? globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
+      : Math.floor(Math.random() * 4294967296);
+    current = { ...style, page: coordinate.page, points: [roundedPoint(coordinate)], seed };
     pointerId = event.pointerId;
     try { elements.pdfCanvas.setPointerCapture(pointerId); } catch { /* Pointer capture is optional. */ }
     updateControls();
@@ -170,6 +186,7 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
   function undoStroke() {
     if (busy || current) return;
     strokes.pop();
+    strokesRevision += 1;
     updateControls();
     scheduleRender();
   }
@@ -177,6 +194,7 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
   function clear() {
     if (busy) return;
     strokes = [];
+    strokesRevision += 1;
     current = null;
     releasePointer();
     updateControls();
@@ -212,6 +230,7 @@ export function createPenTool(elements, preview, applyOperation, onChange) {
       if (sourceFile !== preview.getTargetPdfFile()) {
         sourceFile = preview.getTargetPdfFile();
         strokes = [];
+        strokesRevision += 1;
         current = null;
         releasePointer();
         updateControls();

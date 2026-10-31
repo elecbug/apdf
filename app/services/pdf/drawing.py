@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 
 from app.services.pdf.core import finite_float
 from app.services.pdf.paint import parse_paint
+from app.services.pdf.brush_texture import default_texture_seed, texture_paths
 
 
 # The Edit template also embeds these presets for the live canvas preview.
@@ -15,21 +16,17 @@ BRUSH_PRESETS = {
     "ink": {"label": "Ink (smooth)", "cap": "round", "layers": [
         {"offset": 0, "width": 1, "alpha": 1, "dash": [], "phase": 0},
     ]},
-    "pencil": {"label": "Pencil (grain)", "cap": "round", "layers": [
-        {"offset": -0.22, "width": 0.2, "alpha": 0.65, "dash": [2.5, 0.6], "phase": 0},
-        {"offset": 0, "width": 0.3, "alpha": 0.85, "dash": [2.5, 0.6], "phase": 0.6},
-        {"offset": 0.22, "width": 0.18, "alpha": 0.55, "dash": [2.5, 0.6], "phase": 1.2},
-    ]},
+    "pencil": {"label": "Pencil (grain)", "cap": "round", "surface": {
+        "kind": "graphite", "base_width": 0.86, "base_alpha": 0.12, "tap_marks": 28,
+        "sizes": [0.035, 0.055, 0.08, 0.11], "alphas": [0.22, 0.36, 0.5, 0.66, 0.82],
+    }},
     "marker": {"label": "Marker (flat tip)", "cap": "butt", "layers": [
         {"offset": 0, "width": 1, "alpha": 1, "dash": [], "phase": 0},
     ]},
-    "dry_brush": {"label": "Dry brush (textured)", "cap": "round", "layers": [
-        {"offset": offset, "width": width, "alpha": alpha, "dash": [2.3, 0.9], "phase": index * 0.55}
-        for index, (offset, width, alpha) in enumerate((
-            (-0.38, 0.12, 0.6), (-0.19, 0.16, 0.85), (0, 0.18, 1),
-            (0.19, 0.16, 0.85), (0.38, 0.12, 0.6),
-        ))
-    ]},
+    "dry_brush": {"label": "Dry brush (textured)", "cap": "round", "surface": {
+        "kind": "bristles", "base_width": 0.88, "base_alpha": 0.015, "tap_marks": 18, "bristles": 15,
+        "sizes": [0.02, 0.035, 0.055, 0.08], "alphas": [0.2, 0.35, 0.5, 0.7, 0.9],
+    }},
 }
 MAX_STROKES = 200
 MAX_STROKE_POINTS = 5000
@@ -70,8 +67,14 @@ def validate_drawing(raw: Any, page_sizes: list[tuple[float, float]]) -> dict[in
                 raise ValueError("Pen point out of visible page bounds")
             if not points or points[-1] != (x, y):
                 points.append((x, y))
+        seed = stroke.get("seed")
+        if seed is None:
+            seed = default_texture_seed(points, page)
+        if isinstance(seed, bool) or not isinstance(seed, int) or not 0 <= seed <= 0xFFFFFFFF:
+            raise ValueError("Pen texture seed must be an unsigned 32-bit integer")
         grouped.setdefault(page, []).append({
             "texture": texture, "width": width, "color": color, "opacity": opacity, "points": points,
+            "seed": seed,
         })
     return grouped
 
@@ -102,6 +105,25 @@ def make_drawing_overlay(page_width: float, page_height: float, strokes: list[di
         c.setFillColorRGB(*stroke["color"])
         preset = BRUSH_PRESETS[stroke["texture"]]
         c.setLineCap({"butt": 0, "round": 1, "square": 2}[preset["cap"]])
+        if "surface" in preset:
+            c.setDash([])
+            for group in texture_paths(stroke["points"], stroke["width"], preset["surface"], stroke["seed"]):
+                c.setLineWidth(group["width"])
+                c.setStrokeAlpha(stroke["opacity"] * group["alpha"])
+                c.setFillAlpha(stroke["opacity"] * group["alpha"])
+                path = c.beginPath()
+                has_lines = False
+                for points in group["paths"]:
+                    if len(points) == 1:
+                        c.circle(*points[0], group["width"] / 2, stroke=0, fill=1)
+                    else:
+                        has_lines = True
+                        path.moveTo(*points[0])
+                        for point in points[1:]:
+                            path.lineTo(*point)
+                if has_lines:
+                    c.drawPath(path, stroke=1, fill=0)
+            continue
         for layer in preset["layers"]:
             width = stroke["width"] * layer["width"]
             c.setLineWidth(width)

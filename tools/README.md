@@ -74,6 +74,8 @@ Shape regressions additionally cover all six vector shapes, independent fill/bor
 
 Pen regressions cover four distinct vector brushes, multiple pages and per-stroke styles, dots, duplicate points, RGBA/opacity, visible page bounds, rotation, clipping, invalid inputs, and drawing-size limits.
 
+Texture regressions verify fixed per-stroke seeds, nonperiodic pigment/bristle lengths and densities, independence from mouse-event spacing, removal of repeating PDF dash patterns, and bounded detail for long/thin strokes. The pen browser checks also ensure that zoom does not reshuffle texture and repeated gestures get distinct grain patterns.
+
 The browser regressions use Playwright Chromium and the actual PDF.js engine. Run a disposable APDF server with its own data directory, then run the checks from the project root:
 
 ```bash
