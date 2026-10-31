@@ -112,7 +112,7 @@ Page numbers are 1-based.
 1. Open `/edit`.
 2. Click **Choose PDF to Edit** or drag a PDF onto the Edit PDF section.
 3. Select a PDF.
-4. Choose a tool from the tool carousel.
+4. Choose a tool from the full-width Tools panel above the preview and detail panels.
 5. Configure the tool in the Details panel.
 6. Click the tool action button.
 7. APDF applies the edit immediately and refreshes the preview.
@@ -258,7 +258,7 @@ tool-shapes.png
 tool-pen.png
 ```
 
-The set uses transparent 192×192 PNGs, displayed at 48×48, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.
+The set uses transparent 192×192 PNGs, displayed at 48×48 on desktop and 32×32 on small screens, with matching folded white paper, soft blue edges, and cobalt action symbols. The set was generated with the built-in Imagegen tool; the blank-page master served as the style reference for the other icons. Only sizing, transparent padding, and lossless PNG optimization were applied after generation.
 
 The exact generation prompts and delivery settings are saved in [docs/design/edit-tool-icons.json](docs/design/edit-tool-icons.json). See [docs/design/edit-tools-preview.png](docs/design/edit-tools-preview.png) for the complete set on normal and selected backgrounds.
 

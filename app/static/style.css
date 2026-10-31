@@ -8,8 +8,8 @@
 @import url("/static/css/components/file-picker.css");
 @import url("/static/css/pages/assemble.css");
 @import url("/static/css/layout/tabs.css");
-@import url("/static/css/pages/edit.css?v=4");
+@import url("/static/css/pages/edit.css?v=5");
 @import url("/static/css/pages/result.css");
 @import url("/static/css/layout/footer.css");
 @import url("/static/css/utilities.css");
-@import url("/static/css/responsive.css");
+@import url("/static/css/responsive.css?v=2");

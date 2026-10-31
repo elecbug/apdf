@@ -104,7 +104,7 @@ nunjucks.installJinjaCompat();
 const templates = new nunjucks.Environment(new nunjucks.FileSystemLoader(path.join(root, 'app/templates')), { autoescape: true });
 templates.addFilter('tojson', value => new nunjucks.runtime.SafeString(JSON.stringify(value).replaceAll('<', '\\u003c')));
 const pen_brushes = JSON.parse(await readFile(path.join(root, 'app/static/pen-brush-presets.json')));
-const editMarkup = templates.renderString(`{% include "partials/edit/edit_hero.html" %}<section class="edit-workspace">{% include "partials/edit/preview_pane.html" %}{% include "partials/edit/control_pane.html" %}</section>`, { pen_brushes }).replaceAll('"/static/', '"./static/');
+const editMarkup = templates.renderString(`{% include "partials/edit/edit_hero.html" %}{% include "partials/edit/workspace.html" %}`, { pen_brushes }).replaceAll('"/static/', '"./static/');
 const assembleMarkup = `<section class="composer">${templates.render('partials/assemble/source_pane.html').replace('Ready. Drag PDFs onto Sources to upload.', 'Ready. Drag PDFs here to add them locally.')}</section><details class="card help"><summary>Local storage</summary><ul><li>PDF files are kept in this browser on this device.</li><li>Order and page ranges are restored after reload when browser storage is available.</li><li>Clear Sources removes the stored source PDFs.</li><li>Build and downloads run entirely on this device.</li></ul></details>`;
 await mkdir(path.join(local, 'src/generated'), { recursive: true });
 await writeFile(path.join(local, 'src/generated/workspaces.js'), `// Generated from the shared APDF templates.\nexport const editMarkup = ${JSON.stringify(editMarkup)};\nexport const assembleMarkup = ${JSON.stringify(assembleMarkup)};\n`);

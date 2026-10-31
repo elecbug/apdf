@@ -46,6 +46,10 @@
   }
 
   .edit-workspace {
+    grid-template-areas:
+      "tools"
+      "preview"
+      "details";
     grid-template-columns: 1fr;
   }
 
@@ -54,14 +58,14 @@
     min-height: 520px;
   }
 
-  .edit-control-stack {
-    height: auto;
-    display: grid;
-    grid-template-rows: none;
-    gap: 18px;
+  .edit-preview-pane > .pane-head-auto {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .edit-tool-detail-pane {
+    height: auto;
     overflow: visible;
   }
 
@@ -71,11 +75,6 @@
 
   .edit-detail-actions {
     grid-template-columns: 1fr;
-  }
-
-  .edit-tool-grid {
-    display: flex;
-    overflow-x: auto;
   }
 
   .coordinate-fields {
@@ -90,6 +89,7 @@
 
   .preview-controls {
     width: 100%;
+    justify-content: space-between;
   }
 
   .preview-controls button {
@@ -97,7 +97,12 @@
   }
 
   .preview-controls input {
-    flex: 0 0 80px;
+    flex: 0 0 64px;
+    width: 64px;
+  }
+
+  #previewPageCount {
+    white-space: nowrap;
   }
 
   .main-tabs {

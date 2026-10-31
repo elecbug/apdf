@@ -41,7 +41,7 @@ The local web and desktop editions always build locally and use direct downloads
 
 1. Open **Edit** and choose a PDF or drop one onto **Edit PDF**.
 2. Use the page controls and zoom selector to inspect the preview. **Fit width** adapts a wide page to the preview pane.
-3. Select a tool from the horizontal toolbar and configure its details.
+3. Select a tool from the full-width Tools panel at the top. The preview is below on the left and the selected tool's details are on the right. On smaller screens, buttons wrap and these panels stack vertically.
 4. Click that tool's action button. A successful operation replaces the current preview.
 5. Use **Undo** to restore a previous committed PDF, up to the current in-memory history limit of 20 snapshots.
 6. Click **Download PDF** to keep the current result. Desktop opens a native PDF save dialog.
@@ -54,15 +54,15 @@ Downloads use the current PDF in browser memory. An already loaded edited PDF ca
 
 | Tool | Use |
 | --- | --- |
-| Blank | Insert an empty page before/after a page or at the end; choose the reference size, A4, or Letter. |
-| Img Page | Insert PNG, JPEG, or WebP as a new page with Fit, Fill, or Original sizing. |
+| Blank Page | Insert an empty page before/after a page or at the end; choose the reference size, A4, or Letter. |
+| Image Page | Insert PNG, JPEG, or WebP as a new page with Fit, Fill, or Original sizing. |
 | Append | Insert all pages from another PDF at the selected position. |
 | Rotate | Rotate selected pages in 90-degree increments. |
 | Page Numbers | Set the first page, starting number, position, format, and numbering style. |
 | Delete | Delete selected pages; deleting every page is rejected. |
 | Move | Move selected pages before/after another page or to the end. |
-| Text | Add text with color, alpha, size, optional wrapping width, and bold/italic/underline. |
-| Image | Place an image onto a page with dimensions, opacity, and an optional aspect-ratio lock. |
+| Add Text | Add text with color, alpha, size, optional wrapping width, and bold/italic/underline. |
+| Add Image | Place an image onto a page with dimensions, opacity, and an optional aspect-ratio lock. |
 | Shapes | Add circle, rectangle, triangle, pentagon, star, or rounded rectangle. |
 | Pen | Draw with Ink, Pencil, Marker, or Dry brush. |
 

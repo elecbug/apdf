@@ -60,6 +60,8 @@ Edit keeps its existing job-based contract regardless of the Assemble setting. `
 
 ## Shared browser state
 
+The shared [workspace partial](../app/templates/partials/edit/workspace.html) places the full-width `tool_picker.html` above `preview_pane.html` on the left and the detail-only `control_pane.html` on the right. Both the server template and local build include this same partial, so desktop inherits the same layout. Responsive CSS wraps tool buttons and stacks the lower panels on narrow screens.
+
 [edit/app.js](../app/static/js/edit/app.js) coordinates operation locking, snapshots, downloads and leave warnings. [pdf-preview.js](../app/static/js/edit/pdf-preview.js) owns the current PDF.js document, page, zoom, rendering and pointer conversion. Load/render sequence counters and render cancellation prevent an older request from replacing a newer preview.
 
 The pen controller owns pending strokes, per-stroke settings and texture seeds. Its overlay follows page/zoom changes and caches completed preview strokes. Other edit actions and file replacement are blocked until pending drawing is applied or cleared. Download commits it first.

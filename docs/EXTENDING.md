@@ -10,7 +10,7 @@ Implement shared PDF behavior once in the Python services, then connect it throu
 2. Implement validation and PDF work under `app/services/pdf`. Add dispatch in `editor.py` and update `SUPPORTED_EDIT_OPERATION_TYPES`.
 3. Update `SUPPORTED_EDIT_TYPES` in `app/routes/edit.py`. If the operation needs an image/PDF attachment, also update attachment-ID collection, validation and staging there.
 4. Preserve the service signature accepting paths and operation dictionaries. Avoid importing FastAPI, server cache/job modules, or host-only packages into the shared PDF services.
-5. Add the tool's controls under `app/templates/partials/edit/tools`, include them in `control_pane.html`, and add its toolbar button and icon.
+5. Add the tool's controls under `app/templates/partials/edit/tools`, include them in `control_pane.html`, and add its toolbar button and icon in `tool_picker.html`. `workspace.html` supplies the shared top-toolbar / lower-preview-and-details layout for server, offline web and desktop builds.
 6. Register required element IDs in `app/static/js/edit/dom.js`. Add the action/controller and connect it from `app.js` using the existing apply pipeline.
 7. Keep busy controls, pending-pen restrictions, snapshots, preview replacement, status, Undo and Download consistent. Do not update the current PDF or push Undo before a replacement preview succeeds.
 8. Add meaningful Python behavior tests and browser checks, update smoke operation coverage, and rebuild offline editions.
