@@ -1,6 +1,8 @@
 # Python build cache and venv directories
 __pycache__/
 venv/
+node_modules/
+.sites-runtime/
 
 # Runtime and environment directories
 debug/*

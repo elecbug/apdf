@@ -975,6 +975,7 @@ def _make_image_overlay_pdf(
 def _register_overlay_font() -> str:
     for candidate in [
         FONTS_DIR / "NotoSansKR-Regular.ttf",
+        FONTS_DIR / "NanumGothic-Regular.ttf",
         FONTS_DIR / "NotoSansCJKkr-Regular.otf",
         FONTS_DIR / "NotoSansCJK-Regular.ttc",
         Path("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),

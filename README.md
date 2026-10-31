@@ -2,7 +2,20 @@
 
 APDF is a lightweight internal-network PDF utility server for assembling and editing PDF files.
 
-It is designed for short-lived internal use, not as a long-term document storage system.
+It is designed for short-lived internal use, not as a long-term document storage system. A separate **APDF Local** web app also runs all PDF processing inside the browser and supports offline use.
+
+## Local-only web app
+
+With Node.js 22.12+ installed:
+
+```bash
+npm ci
+npm run local
+```
+
+Open **http://127.0.0.1:4173**. The React app includes all Edit and Assemble tools. PDFs stay on your device; no Python backend or PDF upload is involved. Build dependencies are downloaded once and bundled locally. When the footer says **Ready for offline use**, the app also works after disconnecting the network or stopping the static file server.
+
+`npm run package:local` creates a portable ZIP with a Node launcher. See [the local app guide](local-app/README.md) for installation, storage behavior, testing, and distribution. The Docker/Python instructions below continue to run the original server mode.
 
 ## Features
 

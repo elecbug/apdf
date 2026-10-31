@@ -1,4 +1,4 @@
-let pdfjsLib = null;
+const pdfjsLibraries = new Map();
 
 const DEFAULT_ZOOM = '1.4';
 const FIT_WIDTH_ZOOM = 'fit-width';
@@ -8,15 +8,19 @@ const MIN_ZOOM = ZOOM_LEVELS[0];
 const MAX_ZOOM = ZOOM_LEVELS[ZOOM_LEVELS.length - 1];
 const REGION_DRAG_THRESHOLD_PX = 6;
 
-async function ensurePdfJs() {
-  if (pdfjsLib) {
-    return pdfjsLib;
+async function ensurePdfJs(options) {
+  const url = options.pdfJsUrl || '/static/pdfjs/pdf.mjs';
+  if (!pdfjsLibraries.has(url)) {
+    const loading = import(/* @vite-ignore */ url).then(library => {
+      library.GlobalWorkerOptions.workerSrc = options.workerUrl || '/static/pdfjs/pdf.worker.mjs';
+      return library;
+    }).catch(error => {
+      pdfjsLibraries.delete(url);
+      throw error;
+    });
+    pdfjsLibraries.set(url, loading);
   }
-
-  pdfjsLib = await import('/static/pdfjs/pdf.mjs');
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/pdfjs/pdf.worker.mjs';
-
-  return pdfjsLib;
+  return pdfjsLibraries.get(url);
 }
 
 function loadSavedZoom() {
@@ -79,7 +83,7 @@ function formatCoordinateLine(coordinate, label) {
   return `${label}: page ${coordinate.page}, x ${formatCoordinateNumber(coordinate.x)} pt, y ${formatCoordinateNumber(coordinate.y)} pt · origin: bottom-left`;
 }
 
-export function createPdfPreview(elements, setEditStatus) {
+export function createPdfPreview(elements, setEditStatus, previewOptions = {}) {
   let targetPdfFile = null;
   let targetPdfDocument = null;
   let currentPageNumber = 1;
@@ -110,10 +114,12 @@ export function createPdfPreview(elements, setEditStatus) {
     activeRenderTask?.cancel();
     currentViewport = null;
     let candidate = null;
+    let candidateTask = null;
     try {
       const data = await file.arrayBuffer();
-      const pdfjs = await ensurePdfJs();
-      candidate = await pdfjs.getDocument({ data }).promise;
+      const pdfjs = await ensurePdfJs(previewOptions);
+      candidateTask = pdfjs.getDocument({ ...previewOptions.documentOptions, data });
+      candidate = await candidateTask.promise;
       if (request !== loadSequence) {
         return false;
       }
@@ -134,13 +140,14 @@ export function createPdfPreview(elements, setEditStatus) {
       targetPdfFile = file;
       currentPageNumber = pageNumber;
       candidate = null;
+      candidateTask = null;
       commitRenderedPage(rendered);
       elements.previewPageInput.max = String(targetPdfDocument.numPages);
       elements.previewPageCount.textContent = `/ ${targetPdfDocument.numPages}`;
       elements.previewInfo.textContent = `${file.name} · ${targetPdfDocument.numPages} pages`;
       setEditStatus(`Loaded: ${file.name}`);
       if (previousDocument) {
-        void previousDocument.destroy().catch(console.error);
+        void previousDocument.loadingTask.destroy().catch(console.error);
       }
       return true;
     } catch (error) {
@@ -150,8 +157,8 @@ export function createPdfPreview(elements, setEditStatus) {
       currentViewport = previousViewport;
       throw error;
     } finally {
-      if (candidate) {
-        await candidate.destroy();
+      if (candidateTask) {
+        await candidateTask.destroy();
       }
     }
   }

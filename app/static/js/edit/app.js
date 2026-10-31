@@ -7,7 +7,7 @@ import { createPenTool } from './pen.js?v=2';
 
 const MAX_UNDO_HISTORY = 20;
 
-export function createEditApp() {
+export function createEditApp({ applyEdits, previewOptions } = {}) {
   const elements = getEditElements();
 
   let undoStack = [];
@@ -21,7 +21,7 @@ export function createEditApp() {
     elements.editStatusLine.textContent = message;
   }
 
-  const preview = createPdfPreview(elements, setEditStatus);
+  const preview = createPdfPreview(elements, setEditStatus, previewOptions);
   const shapeTool = createShapeTool(elements, preview, applySingleOperation);
   const penTool = createPenTool(elements, preview, applySingleOperation, updateUndoButton);
 
@@ -222,14 +222,6 @@ export function createEditApp() {
     }
 
     const targetPdfFile = preview.getTargetPdfFile();
-    const formData = new FormData();
-    formData.append('pdf', targetPdfFile, targetPdfFile.name || 'target.pdf');
-    formData.append('operations', JSON.stringify([op]));
-
-    imageItems.forEach((item) => {
-      formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
-    });
-
     const undoSnapshot = makeUndoSnapshot();
     const pageBeforeApply = preview.getCurrentPageNumber();
     const originalButtonText = triggerButton ? triggerButton.textContent : null;
@@ -243,46 +235,43 @@ export function createEditApp() {
 
       setEditStatus('Applying edit...');
 
-      const response = await fetch('/edit/apply', {
-        method: 'POST',
-        body: formData
-      });
+      let editedFile;
+      if (applyEdits) {
+        editedFile = await applyEdits(targetPdfFile, op, imageItems);
+      } else {
+        const formData = new FormData();
+        formData.append('pdf', targetPdfFile, targetPdfFile.name || 'target.pdf');
+        formData.append('operations', JSON.stringify([op]));
+        imageItems.forEach(item => {
+          formData.append(item.id, item.file, item.file.name || `${item.id}.png`);
+        });
+        const response = await fetch('/edit/apply', { method: 'POST', body: formData });
+        const result = await response.json();
 
-      const result = await response.json();
-
-      if (!response.ok || !result.ok) {
-        alert(result.error || 'Failed to apply edit.');
-        setEditStatus(result.error || 'Failed to apply edit.');
-        return false;
+        if (!response.ok || !result.ok) {
+          alert(result.error || 'Failed to apply edit.');
+          setEditStatus(result.error || 'Failed to apply edit.');
+          return false;
+        }
+        if (!result.download_url) {
+          alert('Edit succeeded, but download URL was not returned.');
+          setEditStatus('Edit succeeded, but preview update failed.');
+          return false;
+        }
+        setEditStatus('Loading edited preview...');
+        const editedResponse = await fetch(result.download_url);
+        if (!editedResponse.ok) {
+          throw new Error(`Failed to fetch edited PDF: ${editedResponse.status}`);
+        }
+        editedFile = new File(
+          [await editedResponse.blob()], result.filename || 'edited.pdf', { type: 'application/pdf' }
+        );
       }
-
-      if (!result.download_url) {
-        alert('Edit succeeded, but download URL was not returned.');
-        setEditStatus('Edit succeeded, but preview update failed.');
-        return false;
-      }
-
-      setEditStatus('Loading edited preview...');
-
-      const editedResponse = await fetch(result.download_url);
-
-      if (!editedResponse.ok) {
-        throw new Error(`Failed to fetch edited PDF: ${editedResponse.status}`);
-      }
-
-      const editedBlob = await editedResponse.blob();
-      const editedFilename = result.filename || 'edited.pdf';
-
-      const editedFile = new File(
-        [editedBlob],
-        editedFilename,
-        { type: 'application/pdf' }
-      );
 
       await preview.loadPdfFromFile(editedFile, { pageNumber: pageBeforeApply });
       pushUndoSnapshot(undoSnapshot);
 
-      setEditStatus(`Applied edit. Current preview: ${editedFilename}`);
+      setEditStatus(`Applied edit. Current preview: ${editedFile.name}`);
       return true;
     } catch (error) {
       console.error(error);

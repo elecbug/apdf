@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import io
+import json
 import math
+from pathlib import Path
 from typing import Any
 
 from reportlab.pdfgen import canvas
@@ -12,22 +14,10 @@ from app.services.pdf.brush_texture import default_texture_seed, texture_paths
 
 
 # The Edit template also embeds these presets for the live canvas preview.
-BRUSH_PRESETS = {
-    "ink": {"label": "Ink (smooth)", "cap": "round", "layers": [
-        {"offset": 0, "width": 1, "alpha": 1, "dash": [], "phase": 0},
-    ]},
-    "pencil": {"label": "Pencil (grain)", "cap": "round", "surface": {
-        "kind": "graphite", "base_width": 0.86, "base_alpha": 0.12, "tap_marks": 28,
-        "sizes": [0.035, 0.055, 0.08, 0.11], "alphas": [0.22, 0.36, 0.5, 0.66, 0.82],
-    }},
-    "marker": {"label": "Marker (flat tip)", "cap": "butt", "layers": [
-        {"offset": 0, "width": 1, "alpha": 1, "dash": [], "phase": 0},
-    ]},
-    "dry_brush": {"label": "Dry brush (textured)", "cap": "round", "surface": {
-        "kind": "bristles", "base_width": 0.88, "base_alpha": 0.015, "tap_marks": 18, "bristles": 15,
-        "sizes": [0.02, 0.035, 0.055, 0.08], "alphas": [0.2, 0.35, 0.5, 0.7, 0.9],
-    }},
-}
+BRUSH_PRESETS = json.loads(
+    (Path(__file__).resolve().parents[2] / "static" / "pen-brush-presets.json").read_text(encoding="utf-8")
+)
+
 MAX_STROKES = 200
 MAX_STROKE_POINTS = 5000
 MAX_DRAWING_POINTS = 30000

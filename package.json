@@ -1,0 +1,29 @@
+{
+  "name": "apdf-local",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "prepare:local": "node local-app/scripts/prepare.mjs",
+    "dev:local": "npm run prepare:local && vite --config local-app/vite.config.mjs --host 127.0.0.1",
+    "build:local": "npm run prepare:local && vite build --config local-app/vite.config.mjs && node local-app/scripts/offline.mjs",
+    "preview:local": "node local-app/scripts/serve.mjs",
+    "package:local": "npm run build:local && node local-app/scripts/package.mjs",
+    "local": "npm run build:local && npm run preview:local",
+    "test:local": "node --test local-app/tests/*.test.mjs",
+    "test:local:browser": "node local-app/tests/browser.cjs"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "fflate": "0.8.3",
+    "nunjucks": "3.2.4",
+    "pdfjs-dist": "6.4.299",
+    "playwright": "1.64.1",
+    "pyodide": "314.0.7",
+    "vite": "8.3.5"
+  }
+}

@@ -1,14 +1,16 @@
-import { apiJson } from '../shared/api.js';
+import { apiJson as serverApiJson } from '../shared/api.js';
+import { downloadFileObject } from '../edit/download.js';
 import { getOrCreateClientId } from '../shared/client-id.js?v=2';
 import { clampInput, normalizePositiveInt } from '../shared/input.js';
 import { getAssembleElements } from './dom.js';
 import { renderSources } from './render.js';
 import { createSourceOrderStorage } from './storage.js?v=2';
 
-export function createAssembleApp() {
+export function createAssembleApp(options = {}) {
   const elements = getAssembleElements();
-  const clientId = getOrCreateClientId();
-  const sourceOrderStorage = createSourceOrderStorage(clientId);
+  const apiJson = options.apiJson || serverApiJson;
+  const clientId = options.clientId || getOrCreateClientId();
+  const sourceOrderStorage = options.sourceOrderStorage || createSourceOrderStorage(clientId);
 
   let sources = [];
   let busy = false;
@@ -108,7 +110,7 @@ export function createAssembleApp() {
     }
 
     setBusy(true);
-    setStatus(`Uploading ${pdfFiles.length} PDF(s)...`);
+    setStatus(`${options.local ? 'Reading' : 'Uploading'} ${pdfFiles.length} PDF(s)...`);
 
     try {
       const data = await apiJson(`/api/clients/${encodeURIComponent(clientId)}/sources`, {
@@ -123,7 +125,7 @@ export function createAssembleApp() {
       setStatus(`Added ${data.sources.length} PDF(s) to Sources.`);
     } catch (error) {
       alert(error.message);
-      setStatus('Upload failed.');
+      setStatus(options.local ? 'Could not add PDFs.' : 'Upload failed.');
     } finally {
       setBusy(false);
     }
@@ -199,6 +201,7 @@ export function createAssembleApp() {
 
     if (source) {
       Object.assign(source, readCurrentRange(source));
+      sourceOrderStorage.save(sources);
     }
   }
 
@@ -330,6 +333,11 @@ export function createAssembleApp() {
         body: JSON.stringify(payload)
       });
 
+      if (data.file) {
+        downloadFileObject(data.file, data.file.name || 'assembled.pdf');
+        setStatus('Built PDF locally. Download started.');
+        return;
+      }
       if (data.download_url) {
         downloadFromUrl(data.download_url, data.filename || 'assembled.pdf');
         setStatus(`Built PDF. Download started. Result code: ${data.code}`);
@@ -368,7 +376,7 @@ export function createAssembleApp() {
 
     try {
       await loadSources();
-      setStatus(`Session: ${clientId.slice(0, 8)}...`);
+      setStatus(options.local ? 'Local workspace ready. Files stay in this browser.' : `Session: ${clientId.slice(0, 8)}...`);
     } catch (error) {
       setStatus('Failed to restore sources.');
     } finally {
